@@ -155,4 +155,31 @@ Khabuan's privacy model is a real moat vs Glympse/Life360 (always-on). Make it t
 
 ---
 
-*Research basis: parnuan.com (24.4M items, 567K users, Aug 2026), KhunThong KBTG social chatbot (KBank), LINE Mini App gamification patterns.*
+## 9. LINE-native engagement mechanics (additional research)
+
+Beyond Parnuan and KhunThong, the LINE platform itself ships proven engagement tools — steal them directly:
+
+1. **LINE Reward Card (stamp card)** — the single most proven retention mechanic on the platform. SMEs using it saw a **23% rise in usage and 38% rise in engagement**. It's a stamp/reward card in the chat. **Khabuan mapping:** badges *are* the stamps — each trip drops a badge into a visual "ขบวน card" the member fills. Don't invent a points system; use the stamp-card mental model Thais already know.
+
+2. **Rich Menu** — the persistent menu at the bottom of the chat. It should map to the **six key actions** (join trip · live map · check convoy · my badges · invite · settings), not be a decorative banner. The menu is the "always-visible" affordance that turns the bot into a doorway.
+
+3. **The habit is already there.** Thai users average **84 minutes/day on LINE** at ~83% mobile penetration (42–54M users). You are not asking anyone to build a new habit — you're asking to be *one tap inside* a habit they already have. That's the whole bet, and the data supports it.
+
+4. **LINE FRIENDS / ZO&FRIENDS / Dreamiez** (collabs) — the platform proves **character + scarcity + collection** drives purchases (Big C collab exceeded target by 200%). The persona isn't decoration; it's the same collector psychology that makes LINE stickers work.
+
+---
+
+## 10. What's implemented
+
+| File | What it does |
+|------|--------------|
+| `apps/api/src/modules/line/marshal-messages.ts` | The พี่นำขบวน Thai message catalog (all triggers + badge labels) |
+| `apps/api/src/modules/line/marshal.service.ts` | Persona service: renders messages, routes group vs DM, LINE push seam |
+| `apps/api/src/modules/line/line.service.ts` | Chat-as-interface loop: "ถึงแล้ว" → marshal replies |
+| `apps/api/test/marshal.spec.ts` | Tone-rule tests (no speed, late = DM, Thai charset) |
+
+The marshal replies are produced in the webhook flow; the actual LINE push/reply is a marked seam (`LINE_CHANNEL_ACCESS_TOKEN`) so the persona is fully testable in demo mode without LINE credentials.
+
+---
+
+*Research basis: parnuan.com (24.4M items, 567K users, Aug 2026), KhunThong KBTG social chatbot (KBank), LINE Reward Card (+38% engagement), LINE Thailand penetration (42–54M users, ~83%, 84 min/day), LINE FRIENDS/character collabs.*

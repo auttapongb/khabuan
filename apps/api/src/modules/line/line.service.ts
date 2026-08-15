@@ -6,12 +6,16 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { inferMode, parseWake, type WakeKind } from './wake';
+import { MarshalService, MarshalMessage } from './marshal.service';
 
 @Injectable()
 export class LineService {
   private readonly logger = new Logger(LineService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly marshal: MarshalService,
+  ) {}
 
   /**
    * Verify LINE Messaging API webhook signature.
@@ -50,12 +54,34 @@ export class LineService {
     }
   }
 
+  /**
+   * Turn a recognized chat command into the marshal's friendly Thai reply.
+   * This is the chat-as-interface loop: type "ถึงแล้ว" → พี่นำขบวน answers.
+   */
+  personaReply(text: string): MarshalMessage | null {
+    const t = text.trim().toLowerCase();
+    if (/ถึงแล้ว|ถึงอนุสาวรีย์|ปิดท้ายถึง|^ถึง$/.test(t)) {
+      return this.marshal.confirmArrival();
+    }
+    if (/ออกแล้ว|ออกตัว|รถนำออก/.test(t)) {
+      return this.marshal.confirmDeparture();
+    }
+    if (/พักปั๊ม|แวะปั๊ม|fuel stop/.test(t)) {
+      return this.marshal.confirmPitStop();
+    }
+    if (/หลงทาง|หลง|หาไม่เจอ/.test(t)) {
+      return this.marshal.helpLost();
+    }
+    return null;
+  }
+
   handleWebhookEvents(body: {
     destination?: string;
     events?: unknown[];
-  }): { received: number; wakes: WakeKind[] } {
+  }): { received: number; wakes: WakeKind[]; replies: MarshalMessage[] } {
     const events = body.events ?? [];
     const wakes: WakeKind[] = [];
+    const replies: MarshalMessage[] = [];
     for (const event of events) {
       const text = extractText(event);
       const hit = text ? parseWake(text, inferMode(event)) : null;
@@ -64,12 +90,15 @@ export class LineService {
         this.logger.log(
           `Wake ${hit.kind} (${inferMode(event)}) — group stays keyword-only`,
         );
+        // Chat-as-interface: the marshal answers recognized commands.
+        const reply = this.personaReply(text ?? '');
+        if (reply) replies.push(reply);
       }
     }
     this.logger.log(
       `LINE webhook received ${events.length} event(s), ${wakes.length} wake(s)`,
     );
-    return { received: events.length, wakes };
+    return { received: events.length, wakes, replies };
   }
 }
 

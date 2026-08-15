@@ -1,0 +1,183 @@
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  badgeLabel,
+  MARSHAL_TEMPLATES,
+  MarshalTemplate,
+  MarshalTemplateKey,
+} from './marshal-messages';
+
+export type MarshalTarget = 'group' | 'dm';
+
+export interface MarshalMessage {
+  target: MarshalTarget;
+  text: string;
+  key: MarshalTemplateKey;
+}
+
+/**
+ * พี่นำขบวน — the convoy marshal persona.
+ *
+ * Turns realtime trip events into friendly Thai messages, then routes them to
+ * the trip room (Socket.IO) and — when LINE credentials are configured — to
+ * the LINE group. The persona absorbs the awkward social chore (the
+ * "who's late" nag) so the organizer never has to be the bad guy.
+ */
+@Injectable()
+export class MarshalService {
+  private readonly logger = new Logger(MarshalService.name);
+
+  constructor(private readonly config: ConfigService) {}
+
+  /**
+   * Render a template with the given placeholders. Unknown tokens are left
+   * as-is so a missing substitution is visible rather than silent.
+   */
+  private render(
+    key: MarshalTemplateKey,
+    vars: Record<string, string | number> = {},
+  ): string {
+    const tpl = MARSHAL_TEMPLATES[key] as MarshalTemplate;
+    return Object.entries(vars).reduce(
+      (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
+      tpl.th,
+    );
+  }
+
+  /** Message only — no side effects. Pure, unit-testable. */
+  message(
+    key: MarshalTemplateKey,
+    vars: Record<string, string | number> = {},
+    target: MarshalTarget = 'group',
+  ): MarshalMessage {
+    return { target, text: this.render(key, vars), key };
+  }
+
+  // ── Persona lines for trip lifecycle events ─────────────────────────────
+
+  tripCreated(title: string): MarshalMessage {
+    return this.message('trip_created', { title });
+  }
+
+  rollCall(): MarshalMessage {
+    return this.message('roll_call');
+  }
+
+  rollCallReminder(count: number): MarshalMessage {
+    return this.message('roll_call_reminder', { count });
+  }
+
+  countdown(days: number): MarshalMessage {
+    return this.message('countdown_days', { days });
+  }
+
+  checklist(time: string): MarshalMessage {
+    return this.message('checklist', { time });
+  }
+
+  departure(departed: number, remaining: number, isFirst: boolean): MarshalMessage {
+    return isFirst
+      ? this.message('first_departure')
+      : this.message('departure', { departed, remaining });
+  }
+
+  arrival(order: number): MarshalMessage {
+    return this.message('arrival', { n: order });
+  }
+
+  halfway(): MarshalMessage {
+    return this.message('progress_halfway');
+  }
+
+  /** The gentle anonymous nag (group) — never names the late member. */
+  nagGroup(remaining: number, etaMinutes: number): MarshalMessage {
+    return this.message('nag_group', { remaining, eta: etaMinutes });
+  }
+
+  /** The private DM nag — the "are you safe?" check, not a scolding. */
+  nagDm(): MarshalMessage {
+    return this.message('nag_dm', {}, 'dm');
+  }
+
+  pitStop(): MarshalMessage {
+    return this.message('pit_stop');
+  }
+
+  lost(): MarshalMessage {
+    return this.message('lost');
+  }
+
+  allArrived(): MarshalMessage {
+    return this.message('all_arrived');
+  }
+
+  badgeDrop(name: string, badgeType: string, reason: string): MarshalMessage {
+    return this.message('badge_drop', {
+      name,
+      badge: badgeLabel(badgeType),
+      reason,
+    });
+  }
+
+  streak(clubName: string, streakCount: number): MarshalMessage {
+    return this.message('streak', { club: clubName, streak: streakCount });
+  }
+
+  tripRecap(
+    title: string,
+    distanceKm: number,
+    durationH: number,
+    count: number,
+  ): MarshalMessage {
+    return this.message('trip_recap', {
+      title,
+      distance: distanceKm,
+      duration: durationH,
+      count,
+    });
+  }
+
+  // ── Chat-as-interface command responses ─────────────────────────────────
+
+  confirmArrival(): MarshalMessage {
+    return this.message('arrived_confirm');
+  }
+
+  confirmDeparture(): MarshalMessage {
+    return this.message('departed_confirm');
+  }
+
+  confirmPitStop(): MarshalMessage {
+    return this.message('pitstop_confirm');
+  }
+
+  helpLost(): MarshalMessage {
+    return this.message('lost_help');
+  }
+
+  statusReply(arrived: number, enroute: number, departed: number): MarshalMessage {
+    return this.message('status_reply', { arrived, enroute, departed });
+  }
+
+  // ── Delivery ────────────────────────────────────────────────────────────
+
+  /** Whether LINE Messaging API push is configured (non-demo). */
+  get lineEnabled(): boolean {
+    return !!this.config.get<string>('LINE_CHANNEL_ACCESS_TOKEN');
+  }
+
+  /**
+   * Push a message to a LINE target. In demo mode this logs the message; with
+   * LINE credentials it would POST to the Messaging API push endpoint.
+   * Kept as an explicit seam so the persona is testable without LINE.
+   */
+  pushToLine(groupId: string | undefined, msg: MarshalMessage): void {
+    if (!this.lineEnabled) {
+      this.logger.log(`[marshal:demo] ${msg.target} → ${msg.text}`);
+      return;
+    }
+    // TODO(LINE): POST /v2/bot/message/push with { to: groupId, messages }.
+    // Demo mode is keyword-only by design; wire the access token here.
+    this.logger.log(`[marshal:line] ${msg.target}:${groupId ?? '-'} → ${msg.text}`);
+  }
+}
