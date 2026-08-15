@@ -1,6 +1,6 @@
 {
-  "name": "ขบวนพร้อม",
-  "short_name": "ขบวนพร้อม",
+  "name": "นำขบวน",
+  "short_name": "นำขบวน",
   "description": "ถึงพร้อมกัน ไม่ต้องถามถึงไหนแล้ว",
   "start_url": "/",
   "display": "standalone",

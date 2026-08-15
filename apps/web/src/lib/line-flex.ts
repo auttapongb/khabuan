@@ -56,7 +56,7 @@ export type FlexMessage = {
 };
 
 function brandMark(th: boolean) {
-  return th ? "ขบวนพร้อม" : "KHABUAN";
+  return th ? "นำขบวน" : "KHABUAN";
 }
 
 function row(label: string, value: string): FlexBox {
