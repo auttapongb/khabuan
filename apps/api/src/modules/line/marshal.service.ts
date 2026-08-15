@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { LineClient } from './line-client';
 import {
   badgeLabel,
   MARSHAL_TEMPLATES,
@@ -27,7 +28,10 @@ export interface MarshalMessage {
 export class MarshalService {
   private readonly logger = new Logger(MarshalService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly lineClient: LineClient,
+  ) {}
 
   /**
    * Render a template with the given placeholders. Unknown tokens are left
@@ -159,25 +163,28 @@ export class MarshalService {
     return this.message('status_reply', { arrived, enroute, departed });
   }
 
+  joinGreeting(): MarshalMessage {
+    return this.message('join_greeting');
+  }
+
+  bindConfirm(): MarshalMessage {
+    return this.message('bind_confirm');
+  }
+
   // ── Delivery ────────────────────────────────────────────────────────────
 
   /** Whether LINE Messaging API push is configured (non-demo). */
   get lineEnabled(): boolean {
-    return !!this.config.get<string>('LINE_CHANNEL_ACCESS_TOKEN');
+    return this.lineClient.enabled;
   }
 
   /**
-   * Push a message to a LINE target. In demo mode this logs the message; with
-   * LINE credentials it would POST to the Messaging API push endpoint.
-   * Kept as an explicit seam so the persona is testable without LINE.
+   * Push a message to a LINE target (group or user id). In demo mode the
+   * LineClient no-ops and logs; with LINE_CHANNEL_ACCESS_TOKEN it POSTs to the
+   * Messaging API push endpoint. Kept as an explicit seam so the persona is
+   * testable without LINE credentials.
    */
-  pushToLine(groupId: string | undefined, msg: MarshalMessage): void {
-    if (!this.lineEnabled) {
-      this.logger.log(`[marshal:demo] ${msg.target} → ${msg.text}`);
-      return;
-    }
-    // TODO(LINE): POST /v2/bot/message/push with { to: groupId, messages }.
-    // Demo mode is keyword-only by design; wire the access token here.
-    this.logger.log(`[marshal:line] ${msg.target}:${groupId ?? '-'} → ${msg.text}`);
+  pushToLine(to: string, msg: MarshalMessage): Promise<void> {
+    return this.lineClient.pushText(to, msg.text);
   }
 }

@@ -75,6 +75,8 @@ export interface TripRecord {
   destination: GeoPointJson;
   meetingPoint: GeoPointJson | null;
   routeGeometry: unknown | null;
+  /** LINE group id the นำขบวน bot is a member of, once bound. */
+  lineGroupId: string | null;
   timezone: string;
   targetArrivalAt: Date;
   graceMinutes: number;

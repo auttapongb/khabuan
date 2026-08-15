@@ -171,6 +171,7 @@ model Trip {
   destination     Json
   meetingPoint    Json?     @map("meeting_point")
   routeGeometry   Json?     @map("route_geometry")
+  lineGroupId     String?   @map("line_group_id")
   timezone        String    @default("Asia/Bangkok")
   targetArrivalAt DateTime  @map("target_arrival_at")
   graceMinutes    Int       @default(15) @map("grace_minutes")

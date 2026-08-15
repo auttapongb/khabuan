@@ -155,6 +155,7 @@ export class MemoryStore implements OnModuleInit {
       destination: { lat: 13.746, lng: 100.538 },
       meetingPoint: { lat: 13.7563, lng: 100.5018 },
       routeGeometry: null,
+      lineGroupId: null,
       timezone: 'Asia/Bangkok',
       targetArrivalAt: target,
       graceMinutes: 15,

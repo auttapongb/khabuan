@@ -57,6 +57,7 @@ export class TripsService {
       destination: dto.destination,
       meetingPoint: dto.meetingPoint ?? null,
       routeGeometry: null,
+      lineGroupId: null,
       timezone: dto.timezone,
       targetArrivalAt: new Date(dto.targetArrivalAt),
       graceMinutes: dto.graceMinutes,
@@ -413,6 +414,22 @@ export class TripsService {
 
   private emitMarshal(tripId: string, msg: MarshalMessage): void {
     this.realtime.emitToTrip(tripId, 'marshal:message', msg);
+    const trip = this.store.trips.get(tripId);
+    if (trip?.lineGroupId) {
+      void this.marshal.pushToLine(trip.lineGroupId, msg);
+    }
+  }
+
+  /** Bind a LINE group to a trip — นำขบวน becomes a member of that group. */
+  bindLineGroup(tripId: string, lineGroupId: string): void {
+    const trip = this.store.trips.get(tripId);
+    if (!trip) return;
+    trip.lineGroupId = lineGroupId;
+    trip.updatedAt = new Date();
+    void this.marshal.pushToLine(
+      lineGroupId,
+      this.marshal.message('roll_call'),
+    );
   }
 
   private requireTrip(tripId: string) {
