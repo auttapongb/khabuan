@@ -141,3 +141,17 @@ export function badgeLabel(type: string): string {
   const map = (MARSHAL_TEMPLATES.badge_names as Record<string, MarshalTemplate>);
   return map[type]?.th ?? type;
 }
+
+/** Badge enum → friendly Thai reason (for the badge-drop line). */
+export function badgeReason(type: string): string {
+  const map: Record<string, string> = {
+    EARLY_BIRD: 'มาถึงก่อนเวลา 10–30 นาที',
+    ON_TIME: 'ถึงตรงเวลาเป๊ะ',
+    JUST_IN_TIME: 'ทันช่วงเวลาพอดี',
+    LATE_ARRIVAL: 'ถึงช้าแต่ปลอดภัย',
+    RELIABLE_CRUISER: 'ตรงเวลา 3 ทริปติด',
+    ROAD_CAPTAIN: 'ขบวนถึงครบ 80% ขึ้นไป',
+    SAFETY_FIRST: 'ปิดแชร์และยืนยันถึงปลายทาง',
+  };
+  return map[type] ?? type;
+}

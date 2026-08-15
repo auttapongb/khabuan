@@ -14,6 +14,7 @@ import { shareTripInvite } from "@/lib/liff";
 import { buildRecapFlex } from "@/lib/line-flex";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocale } from "@/lib/i18n/locale";
+import { celebrateConvoy } from "@/lib/marshal";
 import type { Trip, TripResults } from "@/lib/types";
 import ui from "@/styles/ui.module.css";
 
@@ -42,8 +43,14 @@ export default function SummaryPage() {
     try {
       const closed = await closeTrip(params.id);
       setTrip(closed);
-      setResults(await getResults(params.id));
+      const r = await getResults(params.id);
+      setResults(r);
       toast.success(t.summary.toastClose);
+      // พี่นำขบวน: celebrate the convoy + drop badges.
+      celebrateConvoy(
+        r?.aggregate.arrivedCount ?? 0,
+        r?.badges.length ?? 0,
+      );
     } finally {
       setBusy(false);
     }

@@ -22,6 +22,8 @@ import {
 } from '../badges/badge-engine';
 import { BadgesService } from '../badges/badges.service';
 import { RealtimeGateway } from '../realtime/realtime.gateway';
+import { MarshalService, MarshalMessage } from '../line/marshal.service';
+import { badgeReason } from '../line/marshal-messages';
 
 @Injectable()
 export class TripsService {
@@ -30,6 +32,7 @@ export class TripsService {
     private readonly config: ConfigService,
     private readonly badges: BadgesService,
     private readonly realtime: RealtimeGateway,
+    private readonly marshal: MarshalService,
   ) {}
 
   create(organizerId: string, dto: CreateTripRequest) {
@@ -239,6 +242,7 @@ export class TripsService {
     trip.state = 'OPEN';
     trip.updatedAt = new Date();
     this.realtime.emitToTrip(tripId, 'trip:state', { state: 'OPEN' });
+    this.emitMarshal(tripId, this.marshal.rollCall());
     return this.toSummary(trip);
   }
 
@@ -264,6 +268,37 @@ export class TripsService {
     const awards = this.badges.scoreTrip(tripId);
     this.realtime.emitToTrip(tripId, 'trip:state', { state: 'CLOSED' });
     this.realtime.emitToTrip(tripId, 'trip:results', { awards });
+
+    // พี่นำขบวน: celebrate the convoy, drop badges, post the recap.
+    const participants = [...this.store.participants.values()].filter(
+      (p) => p.tripId === tripId,
+    );
+    const arrivedCount = participants.filter((p) => p.arrivedAt).length;
+    if (participants.length > 0 && arrivedCount === participants.length) {
+      this.emitMarshal(tripId, this.marshal.allArrived());
+    }
+    for (const a of awards) {
+      const user = this.store.users.get(a.userId);
+      this.emitMarshal(
+        tripId,
+        this.marshal.badgeDrop(
+          user?.displayName ?? 'ลูกขบวน',
+          a.badgeType,
+          badgeReason(a.badgeType),
+        ),
+      );
+    }
+    const snaps = this.store.etaSnapshots.filter((s) => s.tripId === tripId);
+    const distanceKm = Math.round(
+      snaps.reduce((m, s) => Math.max(m, s.distanceM ?? 0), 0) / 1000,
+    );
+    const durationH = Math.round(
+      snaps.reduce((m, s) => Math.max(m, s.durationSec ?? 0), 0) / 3600,
+    );
+    this.emitMarshal(
+      tripId,
+      this.marshal.tripRecap(trip.title, distanceKm, durationH, arrivedCount),
+    );
 
     return { trip: this.toSummary(trip), awards };
   }
@@ -374,6 +409,10 @@ export class TripsService {
     });
     this.store.inviteByHash.set(tokenHash, id);
     return raw;
+  }
+
+  private emitMarshal(tripId: string, msg: MarshalMessage): void {
+    this.realtime.emitToTrip(tripId, 'marshal:message', msg);
   }
 
   private requireTrip(tripId: string) {
