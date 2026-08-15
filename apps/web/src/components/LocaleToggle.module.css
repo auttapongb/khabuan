@@ -1,0 +1,24 @@
+.toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  flex: none;
+}
+
+.toggle button {
+  min-height: 32px;
+  min-width: 40px;
+  padding: 0 0.55rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.toggle button.on {
+  background: #1c1a14;
+  color: var(--champagne-200);
+}

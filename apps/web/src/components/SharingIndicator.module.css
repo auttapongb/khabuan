@@ -1,0 +1,43 @@
+.indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-height: 40px;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--border);
+  background: rgba(18, 20, 22, 0.88);
+  backdrop-filter: blur(12px);
+}
+
+.sharing {
+  border-color: rgba(111, 191, 138, 0.45);
+  color: #c8ebd4;
+}
+
+.sharing svg {
+  color: var(--live);
+  animation: sharePulse 1.8s ease-out infinite;
+}
+
+.paused {
+  border-color: rgba(212, 168, 90, 0.45);
+  color: #f0dfb8;
+}
+
+.paused svg {
+  color: var(--delayed);
+}
+
+.off {
+  color: var(--text-muted);
+}
+
+.sticky {
+  position: sticky;
+  top: calc(var(--safe-top) + 0.5rem);
+  z-index: 30;
+}

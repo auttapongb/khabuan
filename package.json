@@ -1,0 +1,16 @@
+{
+  "name": "mcg-convoy",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.28.1",
+  "scripts": {
+    "dev": "pnpm run --parallel /^dev:/",
+    "dev:web": "pnpm --filter @mcg-convoy/web dev",
+    "dev:api": "pnpm --filter @mcg-convoy/api start:demo",
+    "build": "pnpm --filter @mcg-convoy/shared build && pnpm --filter @mcg-convoy/api build && pnpm --filter @mcg-convoy/web build",
+    "build:web": "pnpm --filter @mcg-convoy/web build",
+    "build:shared": "pnpm --filter @mcg-convoy/shared build",
+    "test": "pnpm --filter @mcg-convoy/api test",
+    "lint:web": "pnpm --filter @mcg-convoy/web lint"
+  }
+}

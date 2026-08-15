@@ -1,0 +1,676 @@
+﻿
+SOFTWARE DEVELOPMENT SPECIFICATION
+MCG Convoy
+LINE LIFF + Web App for Luxury Car Group Trips
+Executive recommendation  Build one responsive trip platform with two entry modes: LIFF for LINE-native onboarding and sharing, and an external-browser/PWA mode for the live map. Treat background tracking and push-to-talk as platform-dependent capabilities, not guaranteed LIFF behavior.
+
+Document
+Value
+Client
+MCG
+Version
+1.0 - Draft for discovery and estimation
+Date
+15 August 2026
+Audience
+MCG leadership, product owner, delivery team, security/privacy reviewers
+Prepared from
+CTO / product architecture perspective
+
+This specification defines product scope, technical architecture, data model, APIs, privacy controls, acceptance criteria, delivery phases, and open decisions. Commercial amounts and dates are intentionally excluded until discovery confirms scale, countries, map provider, and operating model.
+
+1. Executive Summary
+MCG Convoy is a private trip coordination experience for luxury-car owner groups. A trip organizer creates an event, sets route and arrival window, and shares a LINE link. Members join, select a vehicle icon, consent to location sharing, and see the convoy on a live map with participant ETAs. The system awards friendly, safety-conscious badges for arrival behavior without encouraging speeding.
+Critical product rule  No reward may depend on speed, fastest arrival, aggressive driving, or beating navigation ETA. Scoring is based on safe arrival windows, check-in, consistency, and participation.
+
+1.1 Product outcomes
+Reduce organizer effort and repetitive 'where are you?' messages.
+Give each participant a clear destination, timeline, convoy status, and privacy state.
+Make punctuality and participation enjoyable through opt-in badges and trip summaries.
+Keep LINE as the social entry point while providing a more resilient external web experience.
+1.2 Recommended release boundary
+Release
+Scope
+Decision
+MVP
+Trip setup, invite/join, car profile, foreground GPS, live map, ETA, arrival, core badges, LINE sharing, admin basics
+Commit
+Phase 2
+Richer leaderboards, route checkpoints, photo recap, PWA polish, operational analytics
+Plan after MVP data
+Optional pilot
+Push-to-talk rooms using WebRTC / managed real-time audio
+Prototype separately; not a core LIFF promise
+Future native
+Reliable background GPS, lock-screen controls, CarPlay/Android Auto class integration
+Requires native mobile app
+
+
+2. Scope, Personas and Assumptions
+2.1 Personas
+Persona
+Primary needs
+Permissions
+Trip organizer
+Create trip, set destination/window, invite group, view status, close trip
+Manage own trips and participants
+Driver/member
+Join safely, select car, share location, view map/ETA, arrive
+Manage own profile and sharing
+Passenger/navigator
+Operate map and audio while driver focuses on road
+Optional delegated session role
+MCG administrator
+Moderate clubs, manage catalogs, handle incidents and retention
+Tenant-level administration
+Support operator
+Diagnose consent, device, trip, and delivery problems
+Time-bound least-privilege access
+
+2.2 In scope
+Private MCG clubs and per-trip membership.
+LINE Login/LIFF launch, external browser login, and signed trip deep links.
+Trip route, destination, meeting point, planned start, arrival target, grace window, and organizer notes.
+Foreground location collection, real-time participant map, stale/offline states, per-participant ETA, arrival detection and manual confirmation.
+Vehicle profile and curated icon catalog; no unlicensed manufacturer logos by default.
+Gamification, trip results, moderation, consent, retention, auditing, monitoring, and admin functions.
+2.3 Out of scope for MVP
+Turn-by-turn navigation; launch the chosen mapping app instead.
+Guaranteed background location after the browser/LIFF view is closed or suspended.
+Telemetry from vehicle CAN bus, OBD-II, manufacturer accounts, or infotainment systems.
+Public discovery of members or trips, betting, cash prizes, or speed competition.
+Emergency response, roadside assistance dispatch, or safety-critical tracking.
+2.4 Planning assumptions
+Initial rollout is one MCG tenant with private, invitation-only clubs.
+Typical convoy: 5-30 vehicles; design target: 100 concurrent participants per trip and 20,000 registered users without redesign.
+Location samples are collected only during an active trip and only after explicit permission.
+A mapping/routing provider will be selected during discovery based on launch countries, cost, traffic quality, and license terms.
+English-first UI with localization-ready strings, units, and time zones.
+
+3. Experience and Functional Requirements
+3.1 Primary user journey
+Organizer creates a trip and defines route, destination, target arrival, grace window, visibility, and optional checkpoints.
+System creates an opaque signed invite link. Organizer shares a Flex Message or URL into the desired LINE group.
+Member opens LIFF, authenticates with LINE, reviews the trip and privacy terms, then joins and selects a vehicle/icon.
+At trip start, member taps Start Sharing. The page requests precise location permission and clearly shows sharing state.
+Backend receives samples, calculates route-aware ETA, and streams authorized trip state to active clients.
+Member or geofence confirms arrival. The trip closes at an organizer-defined cutoff and awards badges after validation.
+Participants receive a trip summary; raw location data expires according to policy.
+3.2 Functional requirement catalog
+ID
+Requirement
+Priority
+FR-01
+Authenticate through LINE Login; validate ID token server-side and create an MCG account link.
+Must
+FR-02
+Create/edit/cancel trips with route, destination, time zone, target arrival, grace window, cutoff, notes and capacity.
+Must
+FR-03
+Join only through an authorized club or expiring signed invitation; block forwarding when policy requires.
+Must
+FR-04
+Select vehicle class, color and icon; allow admin-managed custom assets subject to rights review.
+Must
+FR-05
+Start/pause/stop location sharing; display a persistent, unambiguous sharing indicator.
+Must
+FR-06
+Show participant marker, freshness, status and ETA to authorized members of the same active trip.
+Must
+FR-07
+Detect stale/offline data and never present stale location as current.
+Must
+FR-08
+Support geofence-assisted arrival plus member/organizer confirmation and correction audit trail.
+Must
+FR-09
+Calculate badges using versioned rules; permit organizer review before publishing results.
+Must
+FR-10
+Share trip cards/links via LINE share target picker; optionally push updates from an Official Account where configured.
+Must
+FR-11
+Redirect/open the same trip in an external browser while preserving a safe continuation token.
+Must
+FR-12
+Provide trip moderation: remove participant, revoke invite, hide member, close trip and report issue.
+Should
+FR-13
+Provide hold-to-talk audio with room membership, floor control, mute and abuse reporting.
+Optional
+
+3.3 Trip states
+State
+Entry
+Allowed actions
+Exit
+Draft
+Organizer saves
+Edit/delete; preview
+Publish
+Published
+Invite enabled
+Join/leave/edit safe fields
+Open or cancel
+Open
+Start window reached or organizer starts
+Share location; view map; talk if enabled
+Close/cancel
+Closed
+Cutoff or organizer closes
+Confirm results; view summary
+Archive
+Archived
+Retention transition
+View aggregate summary
+Delete per policy
+Cancelled
+Organizer cancels
+View reason; stop all sharing
+Archive
+
+
+4. Live Location, ETA and Arrival
+4.1 Location behavior
+Use the browser Geolocation API after a user gesture and explicit OS/browser permission.
+Adaptive sampling target: 3-5 seconds while moving and visible; 10-20 seconds when slow/stationary. Server may throttle; client must stop when trip closes, user stops, consent is revoked, or session expires.
+Each sample contains trip/session ID, timestamp, latitude/longitude, accuracy, heading and speed when provided. Do not trust client speed for rewards.
+Reject impossible jumps and samples older than the last accepted sample. Preserve the raw value only for short-lived troubleshooting if policy permits; expose normalized position to clients.
+Freshness labels: Live <=15 s; Delayed 16-60 s; Stale >60 s. Stale markers are visibly muted and excluded from precise ETA claims.
+Map sharing defaults to trip members only. Users may choose approximate location (e.g., 500 m obfuscation) before trip start; exact location is recommended only while active.
+4.2 ETA service
+ETA is route-aware and traffic-aware when supported by the selected map provider. To control cost, recalculate on meaningful movement, route deviation, destination change, provider TTL, or periodic interval rather than every GPS sample. Cache by participant/destination and display 'calculating' or 'unavailable' instead of inventing an ETA.
+Condition
+Expected behavior
+Normal
+Show ETA timestamp, duration, last-calculated time and confidence indicator.
+No route
+Fall back to distance/heading status; label ETA unavailable.
+Location stale
+Freeze the last ETA, label it stale, and stop ranking arrival prediction.
+Provider outage/quota
+Use cached ETA within TTL; degrade gracefully and alert operations.
+Destination changed
+Invalidate caches, notify participants, and require client acknowledgement.
+
+
+4.3 Arrival determination
+Candidate arrival occurs when a good-accuracy position remains within the configured geofence (default 150 m) for a dwell period (default 60 seconds).
+Where GPS quality is poor, require manual 'I have arrived' confirmation or organizer confirmation.
+Arrival time is the earliest validated candidate, subject to organizer correction with reason and audit log.
+Arrival status categories use the organizer's target and grace window; scoring configuration is frozen when the trip opens.
+Safety UX  The map must display a persistent 'Do not operate while driving' notice. High-attention actions should be disabled or simplified above a conservative movement threshold, with passenger mode available. This is a risk reduction measure, not proof of who is driving.
+
+5. Gamification Model
+Gamification recognizes preparation and reliability. It must avoid shaming, public exposure of precise arrival deltas by default, or incentives to speed. Members may opt out of public leaderboards while still receiving a private trip summary.
+Badge / status
+Default rule
+Points
+Guardrail
+Early Bird
+Validated arrival 10-30 minutes before target
++15
+No benefit for arriving >30 minutes early
+On Time
+Arrival from 10 minutes early through grace-window end
++20
+Highest punctuality reward
+Just in Time
+Arrival in final 5 minutes of grace window
++10
+Neutral tone; no speed implication
+Late Arrival
+Arrival after grace window but before cutoff
++2
+Private by default; avoid ridicule
+Reliable Cruiser
+On time in 3 consecutive eligible trips
++25
+Minimum 3 trips
+Road Captain
+Organizer closes trip with >=80% arrivals
++15
+Once per trip
+Safety First
+Sharing stopped/paused correctly and arrival confirmed
++10
+No driving-behavior claim
+No score
+Cancelled trip, GPS dispute, or insufficient evidence
+0
+Never guess
+
+Rule engine requirements: version each rule set; store inputs and reason codes; make calculation idempotent; prevent duplicate awards; support organizer dispute/correction; exclude test accounts; provide an audit view; and freeze historical results when rules change.
+
+6. LINE Integration and Web Fallback
+6.1 Channel and account topology
+Create a LINE Login channel with LIFF app under the same provider as the MCG LINE Official Account/Messaging API channel so identities remain consistent within the provider boundary.
+Enable only required scopes (normally openid and profile); request email only if MCG has a defined operational need.
+Validate ID tokens or access tokens on the backend. Do not trust decoded client token content sent as user identity.
+Invite the Official Account into each managed group if automated group updates are required; enable group participation in channel settings.
+6.2 Group association
+A shared URL does not prove which LINE group the user intended. The robust model is an MCG trip membership/invite token in the URL. If the Official Account is present in a group, a webhook can bind that LINE group ID to an MCG club or trip. Otherwise, sharing remains user-driven through LINE's target picker and the system must not claim verified group membership.
+6.3 Messaging behavior
+Use case
+Recommended mechanism
+Constraint
+Member shares trip
+LIFF share target picker with URL/Flex card
+User chooses recipient; OpenChat is not selectable; delivery count is not exposed.
+Send to current chat
+LIFF sendMessages where API/context supports it
+Capability varies by launch context; detect before showing.
+Automated group update
+Messaging API push to bound group ID
+Official Account must be in group; usage may count toward plan quota.
+External browser
+LINE Login + same responsive app
+Some LIFF capabilities require login/SSO and must be capability-detected.
+Deep link
+LIFF permanent link or signed HTTPS trip URL
+Never put personal/location data in URL parameters.
+
+6.4 Redirect / continuation design
+User taps 'Open full live map' in LIFF.
+Backend issues a one-time, short-lived continuation code bound to user, trip, nonce and intended return URI.
+LIFF opens the HTTPS web application in an external browser.
+Web app performs LINE Login if needed, exchanges the code server-side, and restores trip state.
+If identity or nonce differs, deny access and require a fresh invite/login.
+Platform limitation  Moving from LIFF to an external browser improves screen space and may improve foreground stability, but it does not create guaranteed background GPS. Mobile operating systems may suspend either browser when the screen locks or the user switches apps.
+
+7. Optional Push-to-Talk (PTT)
+PTT should be a separately estimated feature flag and pilot. Implementing it as real-time voice inside a mobile webview requires microphone permission, reliable foreground execution, audio-session handling, low latency, and strict room authorization. Browser/OS behavior can interrupt audio when the screen locks or focus changes.
+7.1 Proposed design
+Managed WebRTC SFU or equivalent real-time audio service; no custom peer mesh for groups.
+Trip-scoped short-lived media tokens issued by backend after membership authorization.
+Half-duplex hold-to-talk with server floor control, speaking indicator, mute, block/report and organizer moderation.
+Audio is ephemeral and not recorded by default. Recording requires a separate consent, legal and retention design.
+Prefer passenger operation; provide oversized single control and audio cues. Do not require map interaction while speaking.
+7.2 Pilot exit criteria
+Metric
+Target
+Push-to-talk setup success
+>=95% on supported device matrix
+Median talk-start latency
+<500 ms on healthy 4G/5G/Wi-Fi
+Unexpected disconnect rate
+<2% of active 10-minute sessions
+Permission comprehension
+>=90% in moderated usability test
+Safety/privacy review
+Approved before general availability
+
+
+8. Solution Architecture
+8.1 Logical components
+Layer
+Component
+Responsibility
+Client
+Responsive LIFF/Web PWA
+Authentication bootstrap, trip UI, geolocation, map rendering, real-time updates, optional WebRTC client
+Edge
+CDN/WAF/API gateway
+TLS termination, caching, rate limits, bot protection, request routing
+Application
+Identity & membership
+LINE token validation, MCG account, clubs, invites, roles and consent
+Application
+Trip service
+Trip lifecycle, participants, vehicles, arrival and organizer actions
+Real time
+Location gateway
+WebSocket/SSE fan-out, sample validation, presence and freshness
+Domain
+ETA/routing adapter
+Provider abstraction, cache, cost control, route/ETA normalization
+Domain
+Rules engine
+Versioned badges, idempotent scoring, disputes and summaries
+Integration
+LINE adapter
+Flex/share payloads, webhooks, push/reply messages, signature verification
+Data
+Relational DB + cache
+Authoritative records, geospatial indexes, short-lived positions, locks and presence
+Ops
+Observability/admin
+Metrics, traces, audit logs, moderation, feature flags and support
+
+8.2 Recommended technology profile
+Frontend: TypeScript, React/Next.js or equivalent, LIFF SDK, responsive PWA shell, accessible component system.
+Backend: TypeScript/Node.js (NestJS/Fastify) or Kotlin/Java; REST for commands/queries and WebSocket/SSE for live state.
+Data: PostgreSQL with PostGIS; Redis for presence, rate limiting, ephemeral state and job locks; object storage for approved vehicle assets.
+Async: managed queue/event bus for scoring, notifications, cleanup and analytics.
+Infrastructure: managed containers/serverless where WebSocket duration is supported; infrastructure as code; separate dev/stage/prod.
+Mapping: provider adapter so geocoding, tiles, routes and ETA can be changed without rewriting domain logic.
+8.3 Event flow
+Client obtains location after consent and sends a sequenced sample over authenticated HTTPS/WebSocket.
+Gateway validates membership, trip state, timestamp, accuracy, rate and sequence; accepted sample updates ephemeral current position.
+Location event updates subscribed trip members with authorization-filtered payload.
+ETA worker recalculates only when policy triggers and publishes an ETA update.
+Arrival service evaluates geofence/dwell state and creates a candidate event.
+Trip closure triggers idempotent scoring and notification jobs; retention jobs remove raw samples.
+9. Data Model and API Surface
+9.1 Core entities
+Entity
+Key fields / notes
+User
+id, LINE subject/provider, display name, status, locale, created_at; minimize copied profile data
+Club
+id, tenant_id, name, visibility, owner_id
+ClubMember
+club_id, user_id, role, status, joined_at
+Vehicle
+id, user_id, nickname, class, color, icon_asset_id; optional plate alias, never public by default
+Trip
+id, club_id, organizer_id, state, route/destination geometry, timezone, target/grace/cutoff, rule_version
+TripParticipant
+trip_id, user_id, vehicle_id, role, sharing_state, arrival status/time, visibility
+Invite
+id, trip_id, token_hash, expiry, max_uses, bound_group_id optional, revoked_at
+LocationCurrent
+trip/user, normalized point, accuracy, heading, sampled_at, received_at, freshness
+LocationSample
+short-retention sample partition; encrypted and access-restricted
+EtaSnapshot
+trip/user, provider, ETA, duration, route version, confidence, calculated_at
+BadgeAward
+trip/user/rule version/badge/reason/input hash/status
+ConsentRecord
+user, purpose, policy version, granted/revoked timestamps
+AuditEvent
+actor, action, target, result, reason, timestamp, request correlation
+
+9.2 Representative endpoints
+Method/path
+Purpose
+POST /v1/auth/line/exchange
+Verify LINE credential; establish secure application session
+POST /v1/trips
+Create trip
+GET /v1/trips/{id}
+Read authorized trip summary
+POST /v1/trips/{id}/join
+Redeem invitation and join
+POST /v1/trips/{id}/sharing
+Start/pause/stop sharing with consent reference
+POST /v1/trips/{id}/locations
+Submit sequenced location batch
+GET /v1/trips/{id}/stream
+Subscribe to authorized live state
+POST /v1/trips/{id}/arrivals/confirm
+Confirm or dispute own arrival
+POST /v1/trips/{id}/close
+Close trip; queue scoring
+GET /v1/trips/{id}/results
+Read badges and trip summary
+POST /v1/line/webhook
+Receive verified Messaging API webhook
+POST /v1/continuations
+Create one-time browser continuation code
+
+API conventions: JSON over TLS; UUID/ULID identifiers; UTC timestamps with explicit trip time zone; idempotency keys on mutations; cursor pagination; structured errors; optimistic concurrency for trip edits; request correlation ID; versioned contract documented with OpenAPI.
+
+10. Security, Privacy and Safety
+10.1 Threat model priorities
+Risk
+Required control
+Invite forwarding / trip intrusion
+Opaque high-entropy tokens, expiry/max use, optional group binding, organizer approval, revocation and rate limits
+Location stalking
+Trip-scoped authorization, live-only default, consent controls, precise access logs, rapid revoke, no public URLs
+Identity spoofing
+Server-side LINE token verification, issuer/audience/nonce checks, secure session cookies and CSRF controls
+Webhook forgery/replay
+Verify LINE signature on raw request body; reject stale/duplicate webhook event IDs
+Enumeration
+Non-sequential IDs, uniform errors, rate limits and anomaly alerts
+Insider misuse
+Least privilege, just-in-time support access, audit trail, periodic review and masked admin views
+Audio abuse
+Trip-bound media tokens, mute/block/report, moderator controls, no default recording
+
+10.2 Privacy requirements
+Consent must be specific to live trip location, understandable, recorded by policy version, and revocable at any time.
+Default retention proposal: current position until trip + 24 hours; raw samples 7 days; arrival/badge record 24 months; security/audit logs 12 months. Legal/privacy review may shorten or localize these periods.
+Provide account data access and deletion workflow; distinguish deletion from records MCG must retain for legitimate security/legal purposes.
+Encrypt in transit and at rest; manage secrets in a dedicated secret store; rotate keys and LINE channel secrets.
+Do not expose exact home/start locations in post-trip summaries. Apply configurable start/end privacy zones where appropriate.
+Complete a privacy impact assessment and country-specific legal review before production, especially for precise location and voice.
+10.3 Security engineering
+OWASP ASVS-aligned controls, dependency/SAST/secret scanning, penetration test before launch, and tracked remediation.
+RBAC with tenant, club and trip scope; deny by default; authorization tests at every object boundary.
+Rate and payload limits for auth, invite redemption, location ingestion, WebSocket subscriptions and messaging webhooks.
+Backups with tested restore, production access logging, incident runbooks, and vendor risk review for maps/audio.
+11. Non-Functional Requirements
+ID
+Requirement / target
+NFR-01 Availability
+99.9% monthly for trip API and live-state service, excluding declared third-party outage; graceful degradation for maps/ETA.
+NFR-02 Latency
+Accepted location to subscribed client: p95 <2.5 s within launch region under normal network conditions.
+NFR-03 Capacity
+100 concurrent participants/trip, 1,000 concurrent location-sharing users baseline; load-test before launch.
+NFR-04 Freshness
+Client visibly labels >15 s delay and >60 s stale state; no silent stale marker.
+NFR-05 Recovery
+Proposed RPO <=15 min and RTO <=2 hr for authoritative trip data; ephemeral location may be non-recoverable.
+NFR-06 Accessibility
+WCAG 2.2 AA target for non-map controls; textual status alternative for map-only information.
+NFR-07 Compatibility
+Current and previous major iOS/Android LINE versions and Safari/Chrome; exact matrix locked at discovery.
+NFR-08 Observability
+SLIs for auth, ingest, fan-out, ETA, webhooks, messaging and PTT; trace by correlation ID without raw coordinates in logs.
+NFR-09 Cost
+Per-active-trip budgets and alerts for routing, messages, real-time connections and audio minutes.
+NFR-10 Localization
+Externalized strings, IANA time zones, locale-aware date/time and metric/imperial units.
+
+
+12. UX Screens and States
+Screen
+Core content
+Mandatory states
+Trip invitation
+Organizer, date/time, destination, privacy summary, Join
+Valid, expired, revoked, full, unauthorized
+Vehicle setup
+Icon/class/color/nickname, visibility
+Catalog loading, validation, saved
+Pre-trip lobby
+Countdown, route, participants, readiness, sharing controls
+Not started, organizer delayed, cancelled
+Live convoy map
+Markers, ETA cards, freshness, own sharing state, external-map action
+Live, delayed, stale, offline, permission denied, provider outage
+Arrival
+Detected/confirm/dispute, timestamp, organizer contact
+Candidate, confirmed, corrected
+Trip summary
+Safe results, badges, aggregate timing, opt-out controls
+Pending review, published, disputed
+Admin
+Trips, members, invites, badge rules, assets, audit
+Least privilege, empty/error states
+
+12.1 Driving-mode interaction rules
+Large touch targets; primary screen is glanceable, with no dense chat feed.
+No keyboard entry or configuration while movement is detected; defer to passenger mode or stopped state.
+Never require members to keep the map visually open solely to prove participation; make location status audible/haptic where browser support allows.
+Show explicit controls for Pause sharing and Stop trip sharing at all times.
+13. Analytics and Operations
+Instrumentation must support product learning and safe operations without turning precise trip location into a secondary analytics dataset.
+13.1 Product events
+Collect privacy-minimized events: invite_opened, join_completed, vehicle_selected, permission_result, sharing_started/paused/stopped, map_opened, external_browser_opened, eta_available/unavailable, arrival_candidate/confirmed/disputed, badge_awarded, share_initiated, and PTT permission/session metrics. Never put raw coordinates, access tokens, invite tokens, or message contents into analytics.
+13.2 Operational dashboards and alerts
+Trip API availability/latency/error rate; active trips and live connections.
+Location accept/reject rate, end-to-end freshness, stale participant ratio and reconnects.
+Routing success/latency/quota/cost; LINE webhook verification failures and push errors.
+Database/cache/queue saturation, failed jobs, retention-job lag and backup status.
+Security anomalies: invite brute force, excessive location submissions, cross-trip authorization failures and admin access spikes.
+13.3 Support tooling
+Search by opaque user/trip ID, not precise location; mask personal data by default.
+View device/browser capability report, consent state, sharing transitions, sample freshness and provider error codes.
+One-click invite revoke, participant remove, trip close and account restriction with reason capture.
+Time-limited impersonation is prohibited; use read-only diagnostic views and audited support actions.
+14. Delivery Plan and Governance
+14.1 Proposed phases
+Phase
+Indicative duration
+Deliverables / exit
+0. Discovery & prototype
+2-3 weeks
+Country/device matrix, LINE channel topology, consent copy, map vendor decision, UX prototype, GPS/LIFF spike, threat model, backlog and estimate
+1. MVP build
+10-14 weeks
+Production-ready core scope, admin, integrations, automated tests, observability, runbooks and UAT build
+2. Pilot & hardening
+3-4 weeks
+Controlled MCG trips, load/device tests, security review, analytics review, defect closure and launch decision
+3. Enhancements
+4-8 weeks
+PWA polish, checkpoints, richer summaries/leaderboards and selected learnings
+Optional PTT pilot
+4-6 weeks
+WebRTC prototype, device validation, moderation/privacy review, measured go/no-go
+
+Durations are planning ranges, not commitments. Team assumption: product owner, UX designer, tech lead, 2-3 full-stack engineers, QA automation engineer, part-time DevOps/security, and privacy/legal support. A native background-tracking app is a separate workstream.
+14.2 Definition of done
+Acceptance criteria pass on the agreed device/browser matrix.
+Automated unit, API/contract, authorization, integration and critical end-to-end tests pass in CI.
+Performance, soak, failover and recovery tests meet agreed thresholds.
+Threat model, privacy impact assessment, penetration test and critical/high remediation are complete.
+Monitoring, alerts, dashboards, on-call ownership, runbooks, backup restore evidence and vendor quotas are ready.
+MCG accepts UX content, badge rules, legal text, support process and pilot results.
+14.3 Responsibility outline
+Area
+MCG
+Delivery team
+Product
+Owner, policy, badge tone, pilot group, acceptance
+Discovery, UX, backlog, implementation
+LINE
+Own provider/OA/channel and approve terms
+Configure, integrate, test and document
+Privacy/legal
+Controller decisions and counsel approval
+Privacy-by-design implementation and evidence
+Operations
+Business escalation and moderation owner
+Technical on-call, monitoring and incident response
+Content/assets
+Brand, licensed vehicle imagery, translations
+Optimization, catalog/admin and technical validation
+
+15. Acceptance Criteria
+AC
+Given / when / then
+AC-01 Join
+Given a valid invite and authenticated LINE account, when the user accepts current terms, then exactly one active participant record is created.
+AC-02 Isolation
+Given two trips, when a member subscribes to one trip, then no participant, location, ETA or audio metadata from the other trip is returned.
+AC-03 Sharing
+Given permission granted, when Start Sharing is tapped, then state is visibly active and accepted updates become visible to authorized members within NFR latency.
+AC-04 Stop
+Given active sharing, when Stop is tapped or trip closes, then new samples are rejected and other clients show sharing stopped/stale within 10 seconds.
+AC-05 Permission denied
+Given location permission denied, then the app explains how to recover and allows trip participation without pretending the user is live.
+AC-06 ETA
+Given fresh location and routing availability, then ETA includes timestamp/freshness; on outage it degrades without a false current value.
+AC-07 Arrival
+Given valid dwell inside geofence, then one arrival candidate is created; repeated samples do not duplicate it.
+AC-08 Scoring
+Given a frozen rule version and validated arrival, then recalculation produces the same award and reason without duplicate points.
+AC-09 Share
+Given supported shareTargetPicker capability, then a user can select a LINE recipient and send a trip link without leaking private data in the URL.
+AC-10 Fallback
+Given the user opens external mode, then a short-lived continuation restores only the authorized trip after LINE authentication.
+AC-11 Stale
+Given no accepted sample for >60 seconds, then the participant is visibly stale and excluded from live ETA assertions.
+AC-12 Retention
+Given the retention deadline, then raw location records are deleted or irreversibly aggregated and the deletion job is auditable.
+
+16. Risks, Decisions and Open Questions
+16.1 Risk register
+Risk
+Impact
+Mitigation / owner decision
+LIFF/browser suspension
+Tracking stops when app is backgrounded
+Foreground disclosure, external/PWA mode, stale state; decide whether native app is required
+GPS variability
+False arrival or misleading marker
+Accuracy filters, dwell, manual confirmation and dispute workflow
+Routing cost/outage
+High spend or missing ETA
+Provider adapter, caching, budgets, fallback and alerts
+LINE group assumptions
+Cannot prove selected group or automate messages
+Official Account binding or signed MCG membership model
+Gamification safety
+Speeding, embarrassment or liability
+No speed rewards, private late status, opt-out, safety review
+PTT device behavior
+Poor reliability or unsafe interaction
+Separate pilot; passenger-first UX; managed service; feature flag
+Location privacy
+Severe member trust/security harm
+Minimization, trip scope, short retention, access audit and DPIA
+Vehicle IP
+Trademark/copyright exposure
+Generic silhouettes or licensed assets; MCG approval
+
+16.2 Decisions required before estimation lock
+Launch countries, languages and required data residency.
+Expected registered users, concurrent trips and maximum convoy size.
+Whether the MCG LINE Official Account will join each managed group and whether automated group push is required.
+Exact definition of 'trip base': meeting point only, full planned route, checkpoints, or all three.
+Map/routing vendor, traffic requirement and monthly budget ceiling.
+Default location visibility and approved retention periods.
+Vehicle icon approach: generic catalog, licensed brands/models, or member uploads.
+Badge names, grace-window defaults, visibility, dispute authority and any non-monetary rewards.
+Whether background tracking is a hard requirement; if yes, commission a native app workstream.
+Whether PTT is pilot-only, supported countries/devices, maximum room size, moderation and recording policy.
+17. Test Strategy
+Unit tests for rule engine, time windows, geofence/dwell, invite policy, token validation and retention selectors.
+Contract tests for LINE payloads/webhooks and map/audio adapters using official schemas and recorded non-sensitive fixtures.
+Authorization matrix tests for tenant/club/trip/member/admin boundaries, including IDOR and revoked invites.
+Device tests covering LIFF vs external browser, permission states, lock/background transitions, weak GPS, network loss, resume and battery impact.
+Load/soak tests for target sample frequency, WebSocket fan-out, reconnect storms, ETA throttling and trip closure scoring.
+Chaos tests for Redis/database/queue failover, routing outage, delayed webhooks and partial notification failure.
+UAT on real controlled convoys with passengers operating the app; no test requires unsafe driver interaction.
+18. Official Reference Baseline
+The implementation team must re-check these official references at project kickoff and before production release because SDK behavior, availability and policy can change.
+LINE LIFF API reference: https://developers.line.biz/en/reference/liff/
+Developing a LIFF app: https://developers.line.biz/en/docs/liff/developing-liff-apps/
+Messaging API overview: https://developers.line.biz/en/docs/messaging-api/overview/
+Group chats and multi-person chats: https://developers.line.biz/en/docs/messaging-api/group-chats/
+Receiving messages / webhook signature: https://developers.line.biz/en/docs/messaging-api/receiving-messages/
+Sending messages: https://developers.line.biz/en/docs/messaging-api/sending-messages/
+Getting user IDs: https://developers.line.biz/en/docs/messaging-api/getting-user-ids/
+Messaging API pricing: https://developers.line.biz/en/docs/messaging-api/pricing/
+Appendix A - Recommended MVP Backlog
+Epic
+Representative stories
+Identity & onboarding
+LINE login, consent, profile, club membership, invite redemption, external continuation
+Trip management
+Create/edit/publish/cancel/close, route/destination, target/grace/cutoff, capacity
+Vehicle identity
+Catalog, selection, icon/color, admin asset controls
+Live convoy
+Permission, start/pause/stop, ingestion, presence, map, freshness, reconnect
+ETA & arrival
+Routing adapter/cache, ETA cards, geofence/dwell, manual confirm/dispute
+Gamification
+Rule versioning, safe badges, scoring job, review, summary and opt-out
+LINE communication
+Share card, capability detection, webhook verification, optional group binding/push
+Admin & support
+Trips/members/invites, moderation, diagnostics, audit and retention
+Platform
+CI/CD, environments, secrets, observability, backups, security/privacy evidence
+
+

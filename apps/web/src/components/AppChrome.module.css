@@ -1,0 +1,70 @@
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: calc(var(--safe-bottom) + 1rem);
+}
+
+.bare {
+  padding: 0;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: calc(var(--safe-top) + 0.85rem) 1.25rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+  background: rgba(10, 11, 12, 0.72);
+  backdrop-filter: blur(14px);
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.home {
+  color: inherit;
+}
+
+.title {
+  margin-left: auto;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.nav {
+  display: flex;
+  gap: 1rem;
+  margin-left: auto;
+}
+
+.nav a {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.nav a:hover {
+  color: var(--accent);
+}
+
+.header .title + .nav {
+  margin-left: 1rem;
+}
+
+.safety {
+  padding: 0.85rem 1.25rem 0;
+}
+
+.main {
+  flex: 1;
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.bare .main {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0;
+}

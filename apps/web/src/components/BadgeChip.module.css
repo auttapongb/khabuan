@@ -1,0 +1,53 @@
+.chip {
+  padding: 1rem 1.1rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: linear-gradient(
+    160deg,
+    rgba(36, 40, 46, 0.95),
+    rgba(18, 20, 22, 0.95)
+  );
+  animation: fadeSlideIn 0.4s var(--ease-out) both;
+}
+
+.chip header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.chip h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.chip span {
+  font-size: 0.85rem;
+  color: var(--champagne-400);
+}
+
+.chip p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.chip em {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-style: normal;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--graphite-500);
+}
+
+.late_arrival {
+  opacity: 0.85;
+  border-style: dashed;
+}

@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum TripState {
+  DRAFT
+  PUBLISHED
+  OPEN
+  CLOSED
+  ARCHIVED
+  CANCELLED
+}
+
+enum SharingState {
+  OFF
+  ACTIVE
+  PAUSED
+  STOPPED
+}
+
+enum ParticipantRole {
+  ORGANIZER
+  DRIVER
+  PASSENGER
+}
+
+enum ArrivalStatus {
+  NONE
+  CANDIDATE
+  CONFIRMED
+  DISPUTED
+  CORRECTED
+}
+
+enum ClubMemberRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum ClubMemberStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  LEFT
+}
+
+enum BadgeType {
+  EARLY_BIRD
+  ON_TIME
+  JUST_IN_TIME
+  LATE_ARRIVAL
+  RELIABLE_CRUISER
+  ROAD_CAPTAIN
+  SAFETY_FIRST
+}
+
+enum BadgeAwardStatus {
+  AWARDED
+  PENDING_REVIEW
+  REVOKED
+}
+
+enum UserStatus {
+  ACTIVE
+  RESTRICTED
+  DELETED
+}
+
+model User {
+  id           String     @id @default(uuid()) @db.Uuid
+  lineSubject  String?    @unique @map("line_subject")
+  displayName  String     @map("display_name")
+  status       UserStatus @default(ACTIVE)
+  locale       String     @default("en")
+  isAdmin      Boolean    @default(false) @map("is_admin")
+  isTestAccount Boolean   @default(false) @map("is_test_account")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  ownedClubs     Club[]            @relation("ClubOwner")
+  memberships    ClubMember[]
+  vehicles       Vehicle[]
+  organizedTrips Trip[]            @relation("TripOrganizer")
+  participations TripParticipant[]
+  badgeAwards    BadgeAward[]
+  consents       ConsentRecord[]
+  auditEvents    AuditEvent[]      @relation("AuditActor")
+  locationCurrents LocationCurrent[]
+  locationSamples  LocationSample[]
+  etaSnapshots     EtaSnapshot[]
+
+  @@map("users")
+}
+
+model Club {
+  id         String   @id @default(uuid()) @db.Uuid
+  tenantId   String   @default("mcg") @map("tenant_id")
+  name       String
+  visibility String   @default("private")
+  ownerId    String   @map("owner_id") @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  owner   User         @relation("ClubOwner", fields: [ownerId], references: [id])
+  members ClubMember[]
+  trips   Trip[]
+
+  @@map("clubs")
+}
+
+model ClubMember {
+  id       String           @id @default(uuid()) @db.Uuid
+  clubId   String           @map("club_id") @db.Uuid
+  userId   String           @map("user_id") @db.Uuid
+  role     ClubMemberRole   @default(MEMBER)
+  status   ClubMemberStatus @default(ACTIVE)
+  joinedAt DateTime         @default(now()) @map("joined_at")
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@map("club_members")
+}
+
+model VehicleIconAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  slug        String   @unique
+  label       String
+  svgPath     String?  @map("svg_path")
+  rightsNotes String?  @map("rights_notes")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  vehicles Vehicle[]
+
+  @@map("vehicle_icon_assets")
+}
+
+model Vehicle {
+  id          String  @id @default(uuid()) @db.Uuid
+  userId      String  @map("user_id") @db.Uuid
+  nickname    String
+  class       String  @default("sedan")
+  color       String  @default("#1a1a1a")
+  iconAssetId String? @map("icon_asset_id") @db.Uuid
+  plateAlias  String? @map("plate_alias")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  iconAsset VehicleIconAsset? @relation(fields: [iconAssetId], references: [id])
+  participations TripParticipant[]
+
+  @@map("vehicles")
+}
+
+model Trip {
+  id              String    @id @default(uuid()) @db.Uuid
+  clubId          String    @map("club_id") @db.Uuid
+  organizerId     String    @map("organizer_id") @db.Uuid
+  title           String
+  state           TripState @default(DRAFT)
+  /// JSON { lat, lng } — PostGIS geometry optional via raw SQL later
+  destination     Json
+  meetingPoint    Json?     @map("meeting_point")
+  routeGeometry   Json?     @map("route_geometry")
+  timezone        String    @default("Asia/Bangkok")
+  targetArrivalAt DateTime  @map("target_arrival_at")
+  graceMinutes    Int       @default(15) @map("grace_minutes")
+  cutoffAt        DateTime  @map("cutoff_at")
+  capacity        Int       @default(30)
+  ruleVersion     String    @default("1.0.0") @map("rule_version")
+  notes           String?
+  cancelReason    String?   @map("cancel_reason")
+  closedAt        DateTime? @map("closed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  club         Club              @relation(fields: [clubId], references: [id])
+  organizer    User              @relation("TripOrganizer", fields: [organizerId], references: [id])
+  participants TripParticipant[]
+  invites      Invite[]
+  locationCurrents LocationCurrent[]
+  locationSamples  LocationSample[]
+  etaSnapshots     EtaSnapshot[]
+  badgeAwards      BadgeAward[]
+
+  @@index([clubId, state])
+  @@map("trips")
+}
+
+model TripParticipant {
+  id            String          @id @default(uuid()) @db.Uuid
+  tripId        String          @map("trip_id") @db.Uuid
+  userId        String          @map("user_id") @db.Uuid
+  vehicleId     String?         @map("vehicle_id") @db.Uuid
+  role          ParticipantRole @default(DRIVER)
+  sharingState  SharingState    @default(OFF) @map("sharing_state")
+  arrivalStatus ArrivalStatus   @default(NONE) @map("arrival_status")
+  arrivedAt     DateTime?       @map("arrived_at")
+  visibility    String          @default("exact")
+  joinedAt      DateTime        @default(now()) @map("joined_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+
+  /// Dwell tracking for geofence arrival
+  geofenceEnteredAt DateTime? @map("geofence_entered_at")
+
+  trip    Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+
+  @@unique([tripId, userId])
+  @@map("trip_participants")
+}
+
+model Invite {
+  id           String    @id @default(uuid()) @db.Uuid
+  tripId       String    @map("trip_id") @db.Uuid
+  tokenHash    String    @unique @map("token_hash")
+  tokenHint    String    @map("token_hint")
+  expiresAt    DateTime  @map("expires_at")
+  maxUses      Int       @default(100) @map("max_uses")
+  useCount     Int       @default(0) @map("use_count")
+  boundGroupId String?   @map("bound_group_id")
+  revokedAt    DateTime? @map("revoked_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId])
+  @@map("invites")
+}
+
+model LocationCurrent {
+  id         String   @id @default(uuid()) @db.Uuid
+  tripId     String   @map("trip_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  /// JSON { lat, lng }
+  point      Json
+  accuracyM  Float?   @map("accuracy_m")
+  headingDeg Float?   @map("heading_deg")
+  seq        Int      @default(0)
+  sampledAt  DateTime @map("sampled_at")
+  receivedAt DateTime @default(now()) @map("received_at")
+  freshness  String   @default("LIVE")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId])
+  @@map("location_currents")
+}
+
+model LocationSample {
+  id         String   @id @default(uuid()) @db.Uuid
+  tripId     String   @map("trip_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  seq        Int
+  point      Json
+  accuracyM  Float?   @map("accuracy_m")
+  headingDeg Float?   @map("heading_deg")
+  speedMps   Float?   @map("speed_mps")
+  sampledAt  DateTime @map("sampled_at")
+  receivedAt DateTime @default(now()) @map("received_at")
+  accepted   Boolean  @default(true)
+  rejectReason String? @map("reject_reason")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, userId, sampledAt])
+  @@map("location_samples")
+}
+
+model EtaSnapshot {
+  id           String   @id @default(uuid()) @db.Uuid
+  tripId       String   @map("trip_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  provider     String
+  etaAt        DateTime? @map("eta_at")
+  durationSec  Int?     @map("duration_sec")
+  distanceM    Float?   @map("distance_m")
+  confidence   String   @default("medium")
+  routeVersion String?  @map("route_version")
+  stale        Boolean  @default(false)
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, userId])
+  @@map("eta_snapshots")
+}
+
+model BadgeAward {
+  id          String           @id @default(uuid()) @db.Uuid
+  tripId      String           @map("trip_id") @db.Uuid
+  userId      String           @map("user_id") @db.Uuid
+  badgeType   BadgeType        @map("badge_type")
+  ruleVersion String           @map("rule_version")
+  points      Int
+  reasonCode  String           @map("reason_code")
+  inputHash   String           @map("input_hash")
+  status      BadgeAwardStatus @default(AWARDED)
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  trip Trip @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tripId, userId, badgeType, ruleVersion])
+  @@map("badge_awards")
+}
+
+model ConsentRecord {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  purpose       String
+  policyVersion String    @map("policy_version")
+  grantedAt     DateTime  @default(now()) @map("granted_at")
+  revokedAt     DateTime? @map("revoked_at")
+  tripId        String?   @map("trip_id") @db.Uuid
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("consent_records")
+}
+
+model AuditEvent {
+  id            String   @id @default(uuid()) @db.Uuid
+  actorId       String?  @map("actor_id") @db.Uuid
+  action        String
+  targetType    String   @map("target_type")
+  targetId      String   @map("target_id")
+  result        String
+  reason        String?
+  correlationId String?  @map("correlation_id")
+  metadata      Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+  @@map("audit_events")
+}

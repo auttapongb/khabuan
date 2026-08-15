@@ -1,0 +1,56 @@
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--accent);
+}
+
+.mark {
+  display: grid;
+  place-items: center;
+  color: var(--champagne-300);
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-thai), var(--font-display), sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  color: var(--text);
+}
+
+.sub {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.hero .mark {
+  font-size: 3.2rem;
+}
+
+.hero .name {
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+}
+
+.hero .sub {
+  font-size: 1.05rem;
+  max-width: 28ch;
+}
+
+.nav .mark {
+  font-size: 1.6rem;
+}
+
+.nav .name {
+  font-size: 1.25rem;
+}
+
+.inline .mark {
+  font-size: 1.2rem;
+}
+
+.inline .name {
+  font-size: 1rem;
+}
