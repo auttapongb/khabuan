@@ -32,7 +32,7 @@ const COLORS: { id: VehicleColor; hex: string; label: string }[] = [
   { id: "black", hex: "#2a2d32", label: "Black" },
   { id: "silver", hex: "#c0c5cc", label: "Silver" },
   { id: "white", hex: "#eceff3", label: "White" },
-  { id: "champagne", hex: "#e4cfa0", label: "Champagne" },
+  { id: "champagne", hex: "#06c755", label: "Champagne" },
   { id: "navy", hex: "#3a4a6b", label: "Navy" },
   { id: "red", hex: "#8b3a3a", label: "Red" },
 ];
@@ -80,7 +80,7 @@ export default function VehiclePage() {
     toast.success(t.vehicle.toast);
   };
 
-  const colorHex = COLORS.find((c) => c.id === color)?.hex || "#e4cfa0";
+  const colorHex = COLORS.find((c) => c.id === color)?.hex || "#06c755";
 
   return (
     <AppChrome title={t.nav.vehicle}>

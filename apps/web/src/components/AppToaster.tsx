@@ -10,8 +10,8 @@ export function AppToaster() {
       offset={72}
       toastOptions={{
         style: {
-          background: "#1a1d21",
-          border: "1px solid rgba(228, 207, 160, 0.22)",
+          background: "#ffffff",
+          border: "1px solid rgba(6, 199, 85, 0.22)",
           color: "#e6e9ee",
           fontFamily: "var(--font-body), Nunito, system-ui, sans-serif",
         },

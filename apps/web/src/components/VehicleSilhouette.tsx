@@ -23,7 +23,7 @@ type Props = {
 
 export function VehicleSilhouette({
   icon,
-  color = "#e4cfa0",
+  color = "#06c755",
   selected,
   onClick,
   label,

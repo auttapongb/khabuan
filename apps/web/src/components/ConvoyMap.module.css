@@ -14,7 +14,7 @@
   padding: 0.4rem 0.75rem;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: rgba(10, 11, 12, 0.78);
+  background: rgba(255, 255, 255, 0.78);
   color: var(--champagne-200);
   font-size: 0.75rem;
   letter-spacing: 0.04em;
@@ -33,18 +33,18 @@
   height: 18px;
   border-radius: 50%;
   background: var(--champagne-300);
-  border: 2px solid #1a1d21;
-  box-shadow: 0 0 0 6px rgba(228, 207, 160, 0.25);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 6px rgba(6, 199, 85, 0.25);
   animation: destPulse 2.4s ease-out infinite;
 }
 
 @keyframes destPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 6px rgba(228, 207, 160, 0.22);
+    box-shadow: 0 0 0 6px rgba(6, 199, 85, 0.22);
   }
   50% {
-    box-shadow: 0 0 0 14px rgba(228, 207, 160, 0);
+    box-shadow: 0 0 0 14px rgba(6, 199, 85, 0);
   }
 }
 
@@ -76,7 +76,7 @@
 .label {
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: rgba(10, 11, 12, 0.82);
+  background: rgba(255, 255, 255, 0.82);
   color: var(--text);
   font-size: 0.68rem;
   letter-spacing: 0.02em;

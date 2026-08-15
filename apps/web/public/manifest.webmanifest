@@ -4,8 +4,8 @@
   "description": "ถึงพร้อมกัน ไม่ต้องถามถึงไหนแล้ว",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0b0c",
-  "theme_color": "#0a0b0c",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -2,11 +2,7 @@
   padding: 1rem 1.1rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: linear-gradient(
-    160deg,
-    rgba(36, 40, 46, 0.95),
-    rgba(18, 20, 22, 0.95)
-  );
+  background: var(--surface);
   animation: fadeSlideIn 0.4s var(--ease-out) both;
 }
 

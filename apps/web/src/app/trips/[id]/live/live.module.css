@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100dvh;
   overflow: hidden;
-  background: #0a0b0c;
+  background: #ffffff;
 }
 
 .overlayTop {
@@ -32,8 +32,8 @@
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: linear-gradient(
     180deg,
-    rgba(18, 20, 22, 0.72),
-    rgba(10, 11, 12, 0.94) 28%
+    rgba(255, 255, 255, 0.72),
+    rgba(255, 255, 255, 0.94) 28%
   );
   border-top: 1px solid var(--border);
   backdrop-filter: blur(16px);
@@ -43,7 +43,7 @@
   max-height: 48dvh;
   overflow: auto;
   scrollbar-width: thin;
-  scrollbar-color: rgba(228, 207, 160, 0.28) transparent;
+  scrollbar-color: rgba(6, 199, 85, 0.28) transparent;
 }
 
 .sheetHeader {
@@ -120,7 +120,7 @@
   width: 42px;
   height: 4px;
   border-radius: 999px;
-  background: rgba(228, 207, 160, 0.35);
+  background: rgba(6, 199, 85, 0.35);
   margin: 0.15rem auto 0.65rem;
 }
 
@@ -137,8 +137,8 @@
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: linear-gradient(
     180deg,
-    rgba(18, 20, 22, 0.88),
-    rgba(10, 11, 12, 0.96) 32%
+    rgba(255, 255, 255, 0.88),
+    rgba(255, 255, 255, 0.96) 32%
   );
   border-top: 1px solid var(--border);
   backdrop-filter: blur(18px);

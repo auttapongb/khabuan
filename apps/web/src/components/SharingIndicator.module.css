@@ -9,7 +9,7 @@
   font-weight: 500;
   letter-spacing: 0.02em;
   border: 1px solid var(--border);
-  background: rgba(18, 20, 22, 0.88);
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(12px);
 }
 

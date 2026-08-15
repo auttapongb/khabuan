@@ -1,46 +1,53 @@
 :root {
-  --graphite-950: #0a0b0c;
-  --graphite-900: #121416;
-  --graphite-850: #1a1d21;
-  --graphite-800: #24282e;
-  --graphite-700: #343a42;
-  --graphite-500: #6b7280;
-  --graphite-300: #a8b0bc;
-  --graphite-100: #e6e9ee;
+  /* Neutrals — light, warm, LINE-native */
+  --graphite-950: #17191b;
+  --graphite-900: #ffffff;
+  --graphite-850: #f4f5f6;
+  --graphite-800: #edeff0;
+  --graphite-700: #e2e5e7;
+  --graphite-500: #6b737a;
+  --graphite-300: #939ba2;
+  --graphite-100: #1b1e21;
 
-  --champagne-400: #d4b978;
-  --champagne-300: #e4cfa0;
-  --champagne-200: #f0e4c4;
-  --champagne-glow: rgba(212, 185, 120, 0.18);
+  /* Accent — LINE green */
+  --green-600: #04953c;
+  --green-500: #06c755;
+  --green-100: #e6f9ee;
 
-  --live: #6fbf8a;
-  --delayed: #d4a85a;
-  --stale: #7a828c;
-  --danger: #c97a7a;
-  --ok: #7cb89a;
+  /* Warm gold → green (single accent). Mascot image keeps its own gold. */
+  --champagne-400: #04953c;
+  --champagne-300: #06c755;
+  --champagne-200: #04953c;
+  --champagne-glow: rgba(6, 199, 85, 0.10);
 
-  --bg: var(--graphite-950);
-  --surface: var(--graphite-900);
-  --surface-raised: var(--graphite-850);
-  --border: rgba(228, 207, 160, 0.14);
-  --border-strong: rgba(228, 207, 160, 0.28);
-  --text: var(--graphite-100);
-  --text-muted: var(--graphite-300);
-  --accent: var(--champagne-300);
-  --accent-strong: var(--champagne-400);
+  --live: #06c755;
+  --delayed: #d4a017;
+  --stale: #939ba2;
+  --danger: #d64545;
+  --ok: #1f9d55;
+
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --surface-raised: #f4f5f6;
+  --border: #e6e8ea;
+  --border-strong: #d2d6d9;
+  --text: #1b1e21;
+  --text-muted: #6b737a;
+  --accent: #06c755;
+  --accent-strong: #04953c;
 
   --font-display: var(--font-display), "Nunito", system-ui, sans-serif;
   --font-body: var(--font-body), "Nunito", system-ui, sans-serif;
   --font-thai: var(--font-thai), "Anuphan", "Leelawadee UI", sans-serif;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 24px;
-  --touch: 52px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --touch: 48px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
-  --shadow-soft: 0 18px 48px rgba(0, 0, 0, 0.45);
+  --shadow-soft: 0 1px 2px rgba(23, 25, 27, 0.05), 0 8px 24px rgba(23, 25, 27, 0.07);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -64,14 +71,11 @@ body {
 }
 
 body {
-  background:
-    radial-gradient(1200px 600px at 80% -10%, rgba(212, 185, 120, 0.08), transparent 55%),
-    radial-gradient(900px 500px at 0% 100%, rgba(36, 40, 46, 0.9), transparent 50%),
-    var(--bg);
+  background: var(--bg);
 }
 
 a {
-  color: var(--accent);
+  color: var(--accent-strong);
   text-decoration: none;
 }
 
@@ -80,86 +84,5 @@ input,
 select,
 textarea {
   font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-img {
-  max-width: 100%;
-  display: block;
-}
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-@keyframes fadeSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes pulseSoft {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.55;
-  }
-}
-
-@keyframes sharePulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(111, 191, 138, 0.45);
-  }
-  70% {
-    box-shadow: 0 0 0 12px rgba(111, 191, 138, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(111, 191, 138, 0);
-  }
-}
-
-.fade-in {
-  animation: fadeSlideIn 0.45s var(--ease-out) both;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  border: 0;
-}
-
-[data-sonner-toaster] {
-  view-transition-name: none;
-}
-
-html[lang="th"] body,
-html[data-locale="th"] body {
-  font-family: var(--font-thai);
-  line-height: 1.65;
-}
-
-html[lang="th"] h1,
-html[lang="th"] h2,
-html[lang="th"] h3,
-html[data-locale="th"] h1,
-html[data-locale="th"] h2,
-html[data-locale="th"] h3 {
-  font-family: var(--font-thai);
-  letter-spacing: 0;
+  color: inherit;
 }

@@ -207,7 +207,7 @@ function addOverlayLayers(
       type: "fill",
       source: "mcg-geofence",
       paint: {
-        "fill-color": "#d4b978",
+        "fill-color": "#06c755",
         "fill-opacity": 0.08,
       },
     });
@@ -216,7 +216,7 @@ function addOverlayLayers(
       type: "line",
       source: "mcg-geofence",
       paint: {
-        "line-color": "#e4cfa0",
+        "line-color": "#06c755",
         "line-width": 1.2,
         "line-opacity": 0.55,
         "line-dasharray": [2, 2],
@@ -233,7 +233,7 @@ function addOverlayLayers(
       type: "line",
       source: "mcg-trails",
       paint: {
-        "line-color": "#d4b978",
+        "line-color": "#06c755",
         "line-width": 2,
         "line-opacity": 0.5,
       },

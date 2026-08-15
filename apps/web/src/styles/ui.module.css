@@ -29,8 +29,8 @@
   letter-spacing: 0.01em;
   transition: transform 0.2s var(--ease-out), background 0.2s, border-color 0.2s;
   text-decoration: none;
-  background: linear-gradient(135deg, #d4b978, #b8954e);
-  color: #16120c;
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .btnGhost {
@@ -211,34 +211,37 @@
 
 .ritual {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--border);
 }
 
 .ritualItem {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.95rem 0.8rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface-raised);
+  grid-template-columns: auto 1fr;
+  column-gap: 0.9rem;
+  padding: 0.95rem 0.1rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .ritualItem strong {
-  font-family: var(--font-display);
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: var(--champagne-200);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
 }
 
 .ritualItem span {
-  font-size: 0.78rem;
-  line-height: 1.4;
+  grid-column: 2;
+  font-size: 0.85rem;
+  line-height: 1.5;
   color: var(--text-muted);
 }
 
 .ritualIcon {
-  color: var(--champagne-400);
+  grid-row: 1 / span 2;
+  align-self: start;
+  margin-top: 0.15rem;
+  color: var(--accent);
 }
 
 .ceremony {
@@ -248,7 +251,7 @@
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   background:
-    radial-gradient(90% 80% at 100% 0%, rgba(212, 185, 120, 0.1), transparent 55%),
+    radial-gradient(90% 80% at 100% 0%, rgba(6, 199, 85, 0.1), transparent 55%),
     var(--surface-raised);
 }
 
@@ -500,8 +503,8 @@
   margin: 0;
   padding: 0.65rem 0.85rem;
   border-radius: var(--radius-md);
-  border: 1px solid rgba(212, 185, 120, 0.28);
-  background: rgba(212, 185, 120, 0.08);
+  border: 1px solid rgba(6, 199, 85, 0.28);
+  background: rgba(6, 199, 85, 0.08);
   color: var(--champagne-200);
   font-size: 0.92rem;
 }
@@ -529,17 +532,17 @@
 }
 
 .sharePulse {
-  outline: 1px solid rgba(212, 185, 120, 0.45);
+  outline: 1px solid rgba(6, 199, 85, 0.45);
   border-radius: var(--radius-lg);
   animation: shareGlow 1.8s var(--ease-out) 2;
 }
 
 @keyframes shareGlow {
   0% {
-    box-shadow: 0 0 0 0 rgba(212, 185, 120, 0.35);
+    box-shadow: 0 0 0 0 rgba(6, 199, 85, 0.35);
   }
   100% {
-    box-shadow: 0 0 0 16px rgba(212, 185, 120, 0);
+    box-shadow: 0 0 0 16px rgba(6, 199, 85, 0);
   }
 }
 
@@ -572,7 +575,7 @@
   padding: 0.55rem 0.2rem;
   border-radius: var(--radius-md);
   border: 1px solid var(--border-strong);
-  background: rgba(10, 11, 12, 0.55);
+  background: rgba(255, 255, 255, 0.55);
   color: var(--champagne-200);
   font: inherit;
   font-size: 0.72rem;
@@ -638,9 +641,9 @@
   margin: 0.45rem 0;
   padding: 0.95rem 1rem;
   border-radius: 16px;
-  border: 1px solid rgba(212, 185, 120, 0.4);
+  border: 1px solid rgba(6, 199, 85, 0.4);
   background:
-    linear-gradient(180deg, rgba(212, 185, 120, 0.12), transparent 55%),
+    linear-gradient(180deg, rgba(6, 199, 85, 0.12), transparent 55%),
     var(--surface-raised);
 }
 
