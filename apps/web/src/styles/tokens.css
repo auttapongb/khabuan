@@ -29,13 +29,13 @@
   --accent: var(--champagne-300);
   --accent-strong: var(--champagne-400);
 
-  --font-display: var(--font-display), "Cormorant Garamond", Georgia, serif;
-  --font-body: var(--font-body), "Outfit", system-ui, sans-serif;
-  --font-thai: var(--font-thai), "IBM Plex Sans Thai", "Leelawadee UI", sans-serif;
+  --font-display: var(--font-display), "Nunito", system-ui, sans-serif;
+  --font-body: var(--font-body), "Nunito", system-ui, sans-serif;
+  --font-thai: var(--font-thai), "Anuphan", "Leelawadee UI", sans-serif;
 
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 20px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
   --touch: 52px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

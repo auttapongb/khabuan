@@ -18,7 +18,7 @@ export function marshalToast(text: string): void {
       background: "#1a1d21",
       border: "1px solid rgba(228, 207, 160, 0.35)",
       color: "#e6e9ee",
-      fontFamily: "var(--font-body), Outfit, system-ui, sans-serif",
+      fontFamily: "var(--font-body), Nunito, system-ui, sans-serif",
     },
   });
 }

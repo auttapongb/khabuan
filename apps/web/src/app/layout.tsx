@@ -1,27 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Cormorant_Garamond, IBM_Plex_Sans_Thai, Outfit } from "next/font/google";
+import { Nunito, Anuphan } from "next/font/google";
 import { PwaRegister } from "@/components/PwaRegister";
 import { AppToaster } from "@/components/AppToaster";
 import { LocaleProvider } from "@/lib/i18n/locale";
 import "@/styles/tokens.css";
 
-const display = Cormorant_Garamond({
+const display = Nunito({
   subsets: ["latin"],
-  weight: ["500", "600", "700"],
+  weight: ["700", "800", "900"],
   variable: "--font-display",
   display: "swap",
 });
 
-const body = Outfit({
+const body = Nunito({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
 
-const thai = IBM_Plex_Sans_Thai({
+const thai = Anuphan({
   subsets: ["thai", "latin"],
-  weight: ["300", "400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-thai",
   display: "swap",
 });
