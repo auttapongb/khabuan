@@ -11,6 +11,12 @@ function makeClient() {
     reply: vi.fn().mockResolvedValue(undefined),
     pushText: vi.fn().mockResolvedValue(undefined),
     push: vi.fn().mockResolvedValue(undefined),
+    quickReply: vi.fn().mockImplementation((labels: string[]) => ({
+      items: labels.map((label: string) => ({
+        type: 'action',
+        action: { type: 'message', label, text: label },
+      })),
+    })),
   };
 }
 
@@ -31,9 +37,14 @@ describe('LineService — นำขบวน group bot', () => {
     await svc.handleWebhookEvents({
       events: [{ type: 'join', source: { type: 'group', groupId: 'g1' } }],
     });
-    expect(client.pushText).toHaveBeenCalledWith(
+    expect(client.push).toHaveBeenCalledWith(
       'g1',
-      expect.stringContaining('พี่นำขบวน'),
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('พี่นำขบวน'),
+        }),
+      ]),
     );
   });
 
@@ -65,9 +76,15 @@ describe('LineService — นำขบวน group bot', () => {
         },
       ],
     });
-    expect(client.reply).toHaveBeenCalledWith('rt2', [
-      { type: 'text', text: expect.stringContaining('ถึงแล้ว') },
-    ]);
+    expect(client.reply).toHaveBeenCalledWith(
+      'rt2',
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('ถึงแล้ว'),
+        }),
+      ]),
+    );
   });
 
   it('stays silent on ordinary group chatter (ขุนทอง rule)', async () => {

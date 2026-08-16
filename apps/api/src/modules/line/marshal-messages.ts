@@ -122,12 +122,12 @@ export const MARSHAL_TEMPLATES = {
     en: 'Convoy status: {arrived} arrived · {enroute} en route · {departed} departed.',
   },
   join_greeting: {
-    th: 'สวัสดี! พี่นำขบวนเข้าขบวนแล้ว 🚗 ส่ง "ผูกขบวน <รหัสทริป>" เพื่อให้พี่นำขบวนดูแลขบวนนี้',
-    en: 'Hello! The marshal joined the convoy 🚗 Send "bind <trip id>" to let the marshal manage this trip.',
+    th: 'สวัสดีทุกคน! พี่นำขบวนมาแล้ว 🚗\nพี่จะช่วยดูแลขบวนนี้ — แตะปุ่มด้านล่างหรือพิมพ์คำสั่งได้เลยน้า\nหัวหน้าขบวนพิมพ์ "ผูกขบวน <รหัสทริป>" เพื่อเริ่ม',
+    en: 'Hi everyone! The marshal is here 🚗\nTap the buttons below or type a command.\nOrganizer: send "bind <trip id>" to get started.',
   },
   bind_confirm: {
-    th: '🎉 ผูกขบวนสำเร็จ! จากนี้พี่นำขบวนจะรายงานสถานะในกรุ๊ปนี้ — เช็คขบวนได้ด้วย "เช็คขบวน"',
-    en: '🎉 Convoy bound! The marshal will report status in this group — try "check".',
+    th: '🎉 ผูกขบวนสำเร็จ!\nต่อไปนี้พี่นำขบวนจะคอยรายงานสถานะให้ — สมาชิกพิมพ์ "ถึงแล้ว" ตอนถึงปลายทางได้เลย 🏁',
+    en: '🎉 Convoy bound!\nThe marshal will report status from here — members type "arrived" at the destination 🏁',
   },
   help_menu: {
     th: 'พี่นำขบวนช่วยได้นะ 🚗\n• "ผูกขบวน <รหัสทริป>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',

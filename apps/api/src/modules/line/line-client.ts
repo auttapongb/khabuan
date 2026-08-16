@@ -1,7 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export type LineTextMessage = { type: 'text'; text: string };
+export type LineQuickReplyAction = { type: 'message'; label: string; text: string };
+export type LineQuickReply = {
+  items: { type: 'action'; action: LineQuickReplyAction }[];
+};
+export type LineTextMessage = {
+  type: 'text';
+  text: string;
+  quickReply?: LineQuickReply;
+};
 
 /**
  * Thin client for the LINE Messaging API (Bot).
@@ -42,6 +50,16 @@ export class LineClient {
   /** Convenience: push a single text line. */
   async pushText(to: string, text: string): Promise<void> {
     await this.push(to, [{ type: 'text', text }]);
+  }
+
+  /** Build a quick-reply button bar (tappable message actions) from labels. */
+  quickReply(labels: string[]): LineQuickReply {
+    return {
+      items: labels.map((label) => ({
+        type: 'action',
+        action: { type: 'message', label, text: label },
+      })),
+    };
   }
 
   private async post(path: string, body: unknown): Promise<void> {

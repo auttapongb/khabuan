@@ -7,7 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { inferMode, parseWake, type WakeKind } from './wake';
 import { MarshalService, MarshalMessage } from './marshal.service';
-import { LineClient } from './line-client';
+import { LineClient, type LineTextMessage } from './line-client';
 import { MemoryStore } from '../../infrastructure/memory/memory.store';
 
 /** ผูกขบวน <tripId> / #ขบวน ผูก <tripId> / bind <tripId> */
@@ -24,6 +24,27 @@ export class LineService {
     private readonly lineClient: LineClient,
     private readonly store: MemoryStore,
   ) {}
+
+  /** Reply with an optional quick-reply button bar. */
+  private async replyText(
+    replyToken: string | undefined,
+    text: string,
+    quickLabels?: string[],
+  ): Promise<void> {
+    if (!replyToken) return;
+    const msg: LineTextMessage = { type: 'text', text };
+    if (quickLabels?.length) {
+      msg.quickReply = this.lineClient.quickReply(quickLabels);
+    }
+    await this.lineClient.reply(replyToken, [msg]);
+  }
+
+  /** The main command menu as quick-reply buttons, in the reply language. */
+  private menuButtons(lang: 'th' | 'en'): string[] {
+    return lang === 'en'
+      ? ['Check', 'Arrived', 'Departed', 'Pit stop', 'Lost']
+      : ['เช็คขบวน', 'ถึงแล้ว', 'ออกตัว', 'แวะปั๊ม', 'หลงทาง'];
+  }
 
   /**
    * Verify LINE Messaging API webhook signature.
@@ -146,7 +167,18 @@ export class LineService {
         if (groupId) {
           const greeting = this.marshal.joinGreeting();
           replies.push(greeting);
-          await this.lineClient.pushText(groupId, greeting.text);
+          await this.lineClient.push(groupId, [
+            {
+              type: 'text',
+              text: greeting.text,
+              quickReply: this.lineClient.quickReply([
+                'เมนู',
+                'เช็คขบวน',
+                'ถึงแล้ว',
+                'ออกตัว',
+              ]),
+            },
+          ]);
         }
         continue;
       }
@@ -165,9 +197,7 @@ export class LineService {
           ? this.marshal.bindConfirm()
           : this.marshal.message('lost', {}); // reuse a friendly "no worries" line
         replies.push(confirm);
-        if (replyToken) {
-          await this.lineClient.reply(replyToken, [{ type: 'text', text: confirm.text }]);
-        }
+        await this.replyText(replyToken, confirm.text, this.menuButtons(lang));
         continue;
       }
 
@@ -175,9 +205,7 @@ export class LineService {
       const reply = this.personaReply(text, lang);
       if (reply) {
         replies.push(reply);
-        if (replyToken) {
-          await this.lineClient.reply(replyToken, [{ type: 'text', text: reply.text }]);
-        }
+        await this.replyText(replyToken, reply.text, this.menuButtons(lang));
         continue;
       }
 
@@ -193,9 +221,7 @@ export class LineService {
               : null;
         if (wakeReply) {
           replies.push(wakeReply);
-          if (replyToken) {
-            await this.lineClient.reply(replyToken, [{ type: 'text', text: wakeReply.text }]);
-          }
+          await this.replyText(replyToken, wakeReply.text, this.menuButtons(lang));
         }
         continue;
       }
@@ -206,9 +232,7 @@ export class LineService {
       if (addressed) {
         const help = this.marshal.help(lang);
         replies.push(help);
-        if (replyToken) {
-          await this.lineClient.reply(replyToken, [{ type: 'text', text: help.text }]);
-        }
+        await this.replyText(replyToken, help.text, this.menuButtons(lang));
       }
     }
 
