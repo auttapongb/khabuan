@@ -77,6 +77,22 @@ export class LineService {
   /** In-progress trip creation flows, keyed by LINE user id. */
   private readonly pendingCreates = new Map<string, PendingCreate>();
 
+  /** Cache of LINE display names by LINE user id. */
+  private readonly profileNames = new Map<string, string>();
+
+  /** Best-effort resolve a LINE user's display name (cached). */
+  private async resolveDisplayName(lineUserId: string): Promise<string> {
+    const cached = this.profileNames.get(lineUserId);
+    if (cached) return cached;
+    const profile = await this.lineClient.getProfile(lineUserId).catch(() => null);
+    const name = profile?.displayName?.trim();
+    if (name) {
+      this.profileNames.set(lineUserId, name);
+      return name;
+    }
+    return 'สมาชิกขบวน';
+  }
+
   /** Find a user by LINE subject, or create one. */
   private ensureUser(lineUserId: string): string {
     const existing = [...this.store.users.values()].find(
@@ -207,6 +223,7 @@ export class LineService {
     const timeMatch = t.match(/(\d{1,2}):(\d{2})/);
     const hh = timeMatch ? parseInt(timeMatch[1], 10) : 9;
     const mm = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
 
     // DD/MM or DD/MM/YYYY
     const dateMatch = t.match(/(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{4}))?/);
@@ -214,6 +231,7 @@ export class LineService {
       const day = parseInt(dateMatch[1], 10);
       const month = parseInt(dateMatch[2], 10) - 1;
       const year = dateMatch[3] ? parseInt(dateMatch[3], 10) : y;
+      if (month < 0 || month > 11 || day < 1 || day > 31) return null;
       return this.bangkokDate(year, month, day, hh, mm);
     }
 
@@ -299,7 +317,15 @@ export class LineService {
         return true;
       }
       const uid = this.ensureUser(lineUserId);
-      const displayName = this.store.users.get(uid)?.displayName ?? 'สมาชิกขบวน';
+      const displayName = await this.resolveDisplayName(lineUserId);
+      const user = this.store.users.get(uid);
+      if (
+        user &&
+        user.displayName === 'สมาชิกขบวน' &&
+        displayName !== 'สมาชิกขบวน'
+      ) {
+        user.displayName = displayName;
+      }
       const { code } = this.createTripFromLine(
         uid,
         displayName,
@@ -364,6 +390,8 @@ export class LineService {
    */
   personaReply(text: string, lang: 'th' | 'en' = 'th'): MarshalMessage | null {
     const t = text.trim().toLowerCase();
+    // Negation guard: "ยังไม่ถึง" / "ไม่ออกตัว" / "ไม่แวะ" must NOT count as status.
+    if (/ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/.test(t)) return null;
     if (/ถึงแล้ว|ถึงอนุสาวรีย์|ปิดท้ายถึง|^ถึง$|arrived|arrive|arrival|reached|made it|i'?m here/i.test(t)) {
       return this.marshal.confirmArrival(lang);
     }
@@ -383,12 +411,17 @@ export class LineService {
    * Bind a LINE group to a trip — นำขบวน becomes a member of that group and
    * reports status into it from now on.
    */
-  private bindGroup(tripId: string, groupId: string): boolean {
+  private bindGroup(
+    tripId: string,
+    groupId: string,
+  ): 'bound' | 'already' | 'conflict' | 'missing' {
     const trip = this.store.trips.get(tripId);
-    if (!trip) return false;
+    if (!trip) return 'missing';
+    if (trip.lineGroupId === groupId) return 'already';
+    if (trip.lineGroupId && trip.lineGroupId !== groupId) return 'conflict';
     trip.lineGroupId = groupId;
     trip.updatedAt = new Date();
-    return true;
+    return 'bound';
   }
 
   /**
@@ -396,7 +429,7 @@ export class LineService {
    * (the first N chars of the id, case-insensitive) — the "locked format"
    * that keeps the group bind easy to type.
    */
-  private resolveTripId(code: string): string | null {
+  private resolveTripId(code: string): string | 'ambiguous' | null {
     const c = code.trim().toUpperCase();
     if (!c) return null;
     if (this.store.trips.has(code)) return code;
@@ -404,7 +437,9 @@ export class LineService {
     const matches = [...this.store.trips.keys()].filter((id) =>
       id.toUpperCase().startsWith(c),
     );
-    return matches.length === 1 ? matches[0] : null;
+    if (matches.length === 1) return matches[0];
+    if (matches.length > 1) return 'ambiguous';
+    return null;
   }
 
   /** Current convoy status for a bound group (or "not bound" if none). */
@@ -478,6 +513,8 @@ export class LineService {
     const p = this.store.participants.get(`${trip.id}:${uid}`);
     if (!p) return;
     const t = text.trim().toLowerCase();
+    // Same negation guard as personaReply — "ยังไม่ถึง" is not an arrival.
+    if (/ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/.test(t)) return;
     const now = new Date();
     if (/ถึงแล้ว|arrived|arrive|reached|made it|i'?m here/i.test(t)) {
       p.arrivalStatus = 'CONFIRMED' as never;
@@ -559,7 +596,8 @@ export class LineService {
       }
 
       if (msg?.type !== 'text') continue;
-      const text = msg.text ?? '';
+      // Accept slash-prefixed commands (/ผูกขบวน, /เช็คขบวน, /นำขบวน, /check …).
+      const text = (msg.text ?? '').replace(/^\s*\//, '');
       const mode = inferMode(event);
       const lang = this.detectLang(text);
 
@@ -633,16 +671,27 @@ export class LineService {
           continue;
         }
         const tripId = this.resolveTripId(code);
+        if (tripId === 'ambiguous') {
+          const amb = this.marshal.bindAmbiguous(lang);
+          replies.push(amb);
+          await this.replyText(replyToken, amb.text);
+          continue;
+        }
         if (!tripId) {
           const nf = this.marshal.bindNotFound(lang);
           replies.push(nf);
           await this.replyText(replyToken, nf.text);
           continue;
         }
-        this.bindGroup(tripId, groupId);
-        const confirm = this.marshal.bindConfirm();
-        replies.push(confirm);
-        await this.replyText(replyToken, confirm.text, this.menuButtons(lang));
+        const result = this.bindGroup(tripId, groupId);
+        const msg =
+          result === 'bound'
+            ? this.marshal.bindConfirm()
+            : result === 'already'
+              ? this.marshal.bindAlready(lang)
+              : this.marshal.bindConflict(lang);
+        replies.push(msg);
+        await this.replyText(replyToken, msg.text, this.menuButtons(lang));
         continue;
       }
 

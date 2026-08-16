@@ -11,6 +11,7 @@ function makeClient() {
     reply: vi.fn().mockResolvedValue(undefined),
     pushText: vi.fn().mockResolvedValue(undefined),
     push: vi.fn().mockResolvedValue(undefined),
+    getProfile: vi.fn().mockResolvedValue(null),
     quickReply: vi.fn().mockImplementation((labels: string[]) => ({
       items: labels.map((label: string) => ({
         type: 'action',
@@ -108,6 +109,79 @@ describe('LineService — นำขบวน group bot', () => {
     const p = store.participants.get(`${DEMO_TRIP}:${uid}`);
     expect(p?.arrivalStatus).toBe('CONFIRMED');
     expect(p?.arrivedAt).toBeInstanceOf(Date);
+  });
+
+  it('accepts slash-prefixed commands (/ผูกขบวน 444444)', async () => {
+    const { store, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 's1',
+          message: { type: 'text', text: '/ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g5', userId: 'u1' },
+        },
+      ],
+    });
+    expect(store.trips.get(DEMO_TRIP)?.lineGroupId).toBe('g5');
+  });
+
+  it('warns when binding a trip already bound to another group', async () => {
+    const { store, client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'c1',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g6', userId: 'u1' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'c2',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g7', userId: 'u1' },
+        },
+      ],
+    });
+    expect(store.trips.get(DEMO_TRIP)?.lineGroupId).toBe('g6');
+    expect(client.reply).toHaveBeenLastCalledWith(
+      'c2',
+      expect.arrayContaining([
+        expect.objectContaining({ text: expect.stringContaining('กรุ๊ปอื่น') }),
+      ]),
+    );
+  });
+
+  it('does not log arrival for negated phrases (ยังไม่ถึง)', async () => {
+    const { store, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'b1',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g8', userId: 'u1' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'n1',
+          message: { type: 'text', text: 'ยังไม่ถึง' },
+          source: { type: 'group', groupId: 'g8', userId: 'u2' },
+        },
+      ],
+    });
+    const uid = [...store.users.values()].find((u) => u.lineSubject === 'u2')?.id;
+    const p = uid ? store.participants.get(`${DEMO_TRIP}:${uid}`) : undefined;
+    expect(p?.arrivalStatus ?? 'NONE').toBe('NONE');
   });
 
   it('offers to create a convoy when ผูกขบวน has no trips yet', async () => {

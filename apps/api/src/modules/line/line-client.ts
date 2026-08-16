@@ -52,6 +52,20 @@ export class LineClient {
     await this.push(to, [{ type: 'text', text }]);
   }
 
+  /** Fetch a user's LINE profile (display name). Null on failure/no token. */
+  async getProfile(userId: string): Promise<{ displayName?: string } | null> {
+    if (!this.token) return null;
+    try {
+      const res = await fetch(`${this.base}/profile/${userId}`, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as { displayName?: string };
+    } catch {
+      return null;
+    }
+  }
+
   /** Build a quick-reply button bar (tappable message actions) from labels. */
   quickReply(labels: string[]): LineQuickReply {
     return {

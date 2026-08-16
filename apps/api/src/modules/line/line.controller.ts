@@ -22,7 +22,7 @@ export class LineController {
   @Post('webhook')
   @ApiExcludeEndpoint()
   webhook(
-    @Req() req: FastifyRequest & { rawBody?: Buffer },
+    @Req() req: FastifyRequest & { rawBody?: Buffer | string },
     @Headers('x-line-signature') signature: string | undefined,
   ) {
     const raw =

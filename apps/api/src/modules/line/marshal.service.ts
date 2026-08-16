@@ -191,6 +191,18 @@ export class MarshalService {
     return this.message('bind_not_found', {}, 'group', lang);
   }
 
+  bindAlready(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_already', {}, 'group', lang);
+  }
+
+  bindConflict(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_conflict', {}, 'group', lang);
+  }
+
+  bindAmbiguous(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_ambiguous', {}, 'group', lang);
+  }
+
   help(lang: 'th' | 'en' = 'th'): MarshalMessage {
     return this.message('help_menu', {}, 'group', lang);
   }

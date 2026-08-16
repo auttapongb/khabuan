@@ -143,7 +143,19 @@ export const MARSHAL_TEMPLATES = {
   },
   bind_not_found: {
     th: 'หารหัสนี้ไม่เจอน้า 🤔 ลองเช็ครหัส 6 ตัวอีกที หรือดูได้ในแอพนำขบวน',
-    en: 'Couldn\'t find that code 🤔 Double-check the 6-char code, or find it in the Khabuan app.',
+    en: "Couldn't find that code 🤔 Double-check the 6-char code, or find it in the Khabuan app.",
+  },
+  bind_already: {
+    th: 'ขบวนนี้ผูกกับกรุ๊ปนี้อยู่แล้วนะ 🎉 ไม่ต้องผูกซ้ำ',
+    en: 'This convoy is already bound to this group 🎉',
+  },
+  bind_conflict: {
+    th: 'ขบวนนี้ผูกกับกรุ๊ปอื่นอยู่แล้วนะ 🤔 ถ้าอยากย้ายกรุ๊ป บอกพี่ได้เลย',
+    en: 'This convoy is already bound to another group 🤔 Let me know if you want to move it.',
+  },
+  bind_ambiguous: {
+    th: 'รหัสนี้ตรงกับหลายขบวนน้า 🤔 ใช้รหัสเต็ม (หรือ 6 ตัวที่เจาะจงกว่านี้) อีกที',
+    en: 'That code matches multiple convoys 🤔 Use the full code (or more digits).',
   },
   not_bound: {
     th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่จะดูแลให้ 😊',

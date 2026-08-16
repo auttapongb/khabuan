@@ -6,6 +6,7 @@ import {
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import cookie from '@fastify/cookie';
+import fastifyRawBody from 'fastify-raw-body';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
@@ -16,6 +17,15 @@ async function bootstrap(): Promise<void> {
 
   await app.register(cookie as never, {
     secret: process.env.JWT_SECRET ?? 'dev-secret-change-me',
+  });
+
+  // Capture the exact raw bytes so LINE webhook signature verification works
+  // against the original payload (not a JSON re-serialization).
+  await app.register(fastifyRawBody as never, {
+    field: 'rawBody',
+    global: true,
+    encoding: 'utf8',
+    runFirst: true,
   });
 
   const origins = [
