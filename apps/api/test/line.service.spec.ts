@@ -80,7 +80,7 @@ describe('LineService — นำขบวน group bot', () => {
     expect(client.reply).toHaveBeenCalled();
   });
 
-  it('explains the format when ผูกขบวน has no code', async () => {
+  it('offers to create a convoy when ผูกขบวน has no trips yet', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({
       events: [
@@ -97,7 +97,51 @@ describe('LineService — นำขบวน group bot', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: 'text',
-          text: expect.stringContaining('รหัส'),
+          text: expect.stringContaining('สร้างขบวน'),
+        }),
+      ]),
+    );
+  });
+
+  it('creates a convoy through the chat flow (สร้างขบวน → name → destination → time)', async () => {
+    const { store, client, svc } = makeLineService();
+    // 1. start
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'c1', message: { type: 'text', text: 'สร้างขบวน' }, source: { type: 'user', userId: 'u9' } },
+      ],
+    });
+    // 2. name
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'c2', message: { type: 'text', text: 'ไปเขาใหญ่' }, source: { type: 'user', userId: 'u9' } },
+      ],
+    });
+    // 3. destination (location message)
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'c3', message: { type: 'location', latitude: 14.35, longitude: 101.37, address: 'เขาใหญ่' }, source: { type: 'user', userId: 'u9' } },
+      ],
+    });
+    // 4. time
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'c4', message: { type: 'text', text: 'พรุ่งนี้ 9:00' }, source: { type: 'user', userId: 'u9' } },
+      ],
+    });
+
+    // A trip was created with the given title + destination.
+    const trips = [...store.trips.values()];
+    const created = trips.find((t) => t.title === 'ไปเขาใหญ่');
+    expect(created).toBeTruthy();
+    expect(created?.destination).toEqual({ lat: 14.35, lng: 101.37 });
+    // The final reply carried the code.
+    expect(client.reply).toHaveBeenCalledWith(
+      'c4',
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('รหัสขบวน'),
         }),
       ]),
     );

@@ -4,15 +4,23 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
+import { BADGE_RULE_VERSION } from '@mcg-convoy/shared';
 import { inferMode, parseWake, type WakeKind } from './wake';
 import { MarshalService, MarshalMessage } from './marshal.service';
 import { LineClient, type LineTextMessage } from './line-client';
 import { MemoryStore } from '../../infrastructure/memory/memory.store';
+import type { TripRecord } from '../../infrastructure/memory/types';
 
 /** ผูกขบวน <code> / #ขบวน ผูก <code> / bind <code> (code = full UUID or short 6-char prefix) */
 const BIND_RE =
   /ผูกขบวน\s+([0-9a-zA-Z-]{4,})|#ขบวน\s*ผูก\s*([0-9a-zA-Z-]{4,})|bind\s+([0-9a-zA-Z-]{4,})/i;
+
+interface PendingCreate {
+  step: 'name' | 'destination' | 'time';
+  name: string | null;
+  destination: { lat: number; lng: number; label: string } | null;
+}
 
 @Injectable()
 export class LineService {
@@ -39,11 +47,245 @@ export class LineService {
     await this.lineClient.reply(replyToken, [msg]);
   }
 
+  /** Reply with quick replies whose labels differ from the text they send. */
+  private async replyTextPairs(
+    replyToken: string | undefined,
+    text: string,
+    items: { label: string; text: string }[],
+  ): Promise<void> {
+    if (!replyToken) return;
+    const msg: LineTextMessage = {
+      type: 'text',
+      text,
+      quickReply: this.lineClient.quickReplyPairs(items),
+    };
+    await this.lineClient.reply(replyToken, [msg]);
+  }
+
   /** The main command menu as quick-reply buttons, in the reply language. */
   private menuButtons(lang: 'th' | 'en'): string[] {
     return lang === 'en'
       ? ['Check', 'Arrived', 'Departed', 'Pit stop', 'Lost']
       : ['เช็คขบวน', 'ถึงแล้ว', 'ออกตัว', 'แวะปั๊ม', 'หลงทาง'];
+  }
+
+  /** In-progress trip creation flows, keyed by LINE user id. */
+  private readonly pendingCreates = new Map<string, PendingCreate>();
+
+  /** Find a user by LINE subject, or create one. */
+  private ensureUser(lineUserId: string): string {
+    const existing = [...this.store.users.values()].find(
+      (u) => u.lineSubject === lineUserId,
+    );
+    if (existing) return existing.id;
+    const now = new Date();
+    const user = {
+      id: randomUUID(),
+      lineSubject: lineUserId,
+      displayName: 'สมาชิกขบวน',
+      status: 'ACTIVE' as const,
+      locale: 'th',
+      isAdmin: false,
+      isTestAccount: false,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.store.users.set(user.id, user);
+    return user.id;
+  }
+
+  /** Find the user's own club, or create one (single-owner "ขบวนของ …"). */
+  private ensureClub(userId: string, displayName: string): string {
+    const owned = [...this.store.clubs.values()].find((c) => c.ownerId === userId);
+    if (owned) return owned.id;
+    const now = new Date();
+    const club = {
+      id: randomUUID(),
+      tenantId: 'line',
+      name: `ขบวนของ ${displayName}`,
+      visibility: 'PRIVATE',
+      ownerId: userId,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.store.clubs.set(club.id, club);
+    this.store.clubMembers.set(`${club.id}:${userId}`, {
+      id: randomUUID(),
+      clubId: club.id,
+      userId,
+      role: 'OWNER' as never,
+      status: 'ACTIVE' as const,
+      joinedAt: now,
+    });
+    return club.id;
+  }
+
+  /** Create a trip from LINE chat with minimal fields + sensible defaults. */
+  private createTripFromLine(
+    userId: string,
+    displayName: string,
+    name: string,
+    destination: { lat: number; lng: number; label: string },
+    arrival: Date,
+  ): { id: string; code: string } {
+    const clubId = this.ensureClub(userId, displayName);
+    const now = new Date();
+    const id = randomUUID();
+    this.store.trips.set(id, {
+      id,
+      clubId,
+      organizerId: userId,
+      title: name,
+      state: 'OPEN' as never,
+      destination: { lat: destination.lat, lng: destination.lng },
+      meetingPoint: null,
+      routeGeometry: null,
+      lineGroupId: null,
+      timezone: 'Asia/Bangkok',
+      targetArrivalAt: arrival,
+      graceMinutes: 15,
+      cutoffAt: new Date(arrival.getTime() - 2 * 60 * 60 * 1000),
+      capacity: 50,
+      ruleVersion: BADGE_RULE_VERSION,
+      notes: destination.label,
+      cancelReason: null,
+      closedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    this.store.participants.set(`${id}:${userId}`, {
+      id: randomUUID(),
+      tripId: id,
+      userId,
+      vehicleId: null,
+      role: 'ORGANIZER' as never,
+      sharingState: 'OFF' as never,
+      arrivalStatus: 'NONE' as never,
+      arrivedAt: null,
+      visibility: 'exact',
+      joinedAt: now,
+      updatedAt: now,
+      geofenceEnteredAt: null,
+    });
+    return { id, code: id.slice(0, 6).toUpperCase() };
+  }
+
+  /** The user's own (open/published/draft) trips, newest first. */
+  private myTrips(userId: string): TripRecord[] {
+    return [...this.store.trips.values()]
+      .filter(
+        (t) =>
+          t.organizerId === userId &&
+          (t.state === 'OPEN' || t.state === 'PUBLISHED' || t.state === 'DRAFT'),
+      )
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  /** Parse a Thai/English date-time string into a Date, or null. */
+  private parseArrival(text: string): Date | null {
+    const t = text.trim();
+    const now = new Date();
+    const timeMatch = t.match(/(\d{1,2}):(\d{2})/);
+    const hh = timeMatch ? parseInt(timeMatch[1], 10) : 9;
+    const mm = timeMatch ? parseInt(timeMatch[2], 10) : 0;
+
+    // DD/MM or DD/MM/YYYY
+    const dateMatch = t.match(/(\d{1,2})\s*\/\s*(\d{1,2})(?:\s*\/\s*(\d{4}))?/);
+    if (dateMatch) {
+      const day = parseInt(dateMatch[1], 10);
+      const month = parseInt(dateMatch[2], 10) - 1;
+      const year = dateMatch[3] ? parseInt(dateMatch[3], 10) : now.getFullYear();
+      return new Date(year, month, day, hh, mm);
+    }
+
+    // Thai month names (e.g. "25 ส.ค." / "25 สิงหาคม")
+    const months: [string, number][] = [
+      ['ม.ค.', 0], ['มกราคม', 0], ['ก.พ.', 1], ['กุมภาพันธ์', 1],
+      ['มี.ค.', 2], ['มีนาคม', 2], ['เม.ย.', 3], ['เมษายน', 3],
+      ['พ.ค.', 4], ['พฤษภาคม', 4], ['มิ.ย.', 5], ['มิถุนายน', 5],
+      ['ก.ค.', 6], ['กรกฎาคม', 6], ['ส.ค.', 7], ['สิงหาคม', 7],
+      ['ก.ย.', 8], ['กันยายน', 8], ['ต.ค.', 9], ['ตุลาคม', 9],
+      ['พ.ย.', 10], ['พฤศจิกายน', 10], ['ธ.ค.', 11], ['ธันวาคม', 11],
+      ['jan', 0], ['feb', 1], ['mar', 2], ['apr', 3], ['may', 4],
+      ['jun', 5], ['jul', 6], ['aug', 7], ['sep', 8], ['oct', 9],
+      ['nov', 10], ['dec', 11],
+    ];
+    for (const [name, monthIdx] of months) {
+      const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const m = t.toLowerCase().match(new RegExp(`(\\d{1,2})\\s*${escaped}`));
+      if (m) {
+        return new Date(now.getFullYear(), monthIdx, parseInt(m[1], 10), hh, mm);
+      }
+    }
+
+    if (/พรุ่งนี้|tomorrow/i.test(t)) {
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, hh, mm);
+    }
+    if (/วันนี้|today/i.test(t)) {
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+    }
+    if (timeMatch) {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+      if (d.getTime() < now.getTime()) d.setDate(d.getDate() + 1);
+      return d;
+    }
+    return null;
+  }
+
+  /**
+   * Consume one answer in the create-convoy conversation. Returns true if the
+   * message was part of an in-progress flow (so the caller should stop).
+   */
+  private async handlePendingCreate(
+    lineUserId: string,
+    text: string,
+    lang: 'th' | 'en',
+    replyToken: string | undefined,
+    replies: MarshalMessage[],
+  ): Promise<boolean> {
+    const pending = this.pendingCreates.get(lineUserId);
+    if (!pending) return false;
+
+    if (pending.step === 'name') {
+      pending.name = text.trim();
+      pending.step = 'destination';
+      const ask = this.marshal.createAskDestination(lang);
+      replies.push(ask);
+      await this.replyText(replyToken, ask.text);
+      return true;
+    }
+    if (pending.step === 'destination') {
+      pending.destination = { lat: 13.7563, lng: 100.5018, label: text.trim() };
+      pending.step = 'time';
+      const ask = this.marshal.createAskTime(lang);
+      replies.push(ask);
+      await this.replyText(replyToken, ask.text);
+      return true;
+    }
+    if (pending.step === 'time') {
+      const time = this.parseArrival(text);
+      if (!time) {
+        const ask = this.marshal.createAskTime(lang);
+        replies.push(ask);
+        await this.replyText(replyToken, ask.text);
+        return true;
+      }
+      const uid = this.ensureUser(lineUserId);
+      const displayName = this.store.users.get(uid)?.displayName ?? 'สมาชิกขบวน';
+      const { code } = this.createTripFromLine(
+        uid,
+        displayName,
+        pending.name ?? 'ขบวน',
+        pending.destination ?? { lat: 13.7563, lng: 100.5018, label: '' },
+        time,
+      );
+      this.pendingCreates.delete(lineUserId);
+      const done = this.marshal.createDone(pending.name ?? 'ขบวน', code, lang);
+      replies.push(done);
+      await this.replyText(replyToken, done.text, this.menuButtons(lang));
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -172,7 +414,13 @@ export class LineService {
       const event = raw as {
         type?: string;
         replyToken?: string;
-        message?: { type?: string; text?: string };
+        message?: {
+          type?: string;
+          text?: string;
+          latitude?: number;
+          longitude?: number;
+          address?: string;
+        };
         source?: { type?: string; groupId?: string; roomId?: string; userId?: string };
       };
       const groupId = event.source?.groupId ?? event.source?.roomId ?? null;
@@ -199,17 +447,77 @@ export class LineService {
         continue;
       }
 
-      if (event.type !== 'message' || event.message?.type !== 'text') continue;
-      const text = event.message.text ?? '';
+      if (event.type !== 'message') continue;
+      const msg = event.message;
+      const userId = event.source?.userId ?? null;
+
+      // Location share → destination step of the create flow.
+      if (msg?.type === 'location' && userId) {
+        const pending = this.pendingCreates.get(userId);
+        if (pending?.step === 'destination') {
+          pending.destination = {
+            lat: msg.latitude ?? 13.7563,
+            lng: msg.longitude ?? 100.5018,
+            label: msg.address ?? 'จุดหมาย',
+          };
+          pending.step = 'time';
+          const ask = this.marshal.createAskTime('th');
+          replies.push(ask);
+          await this.replyText(replyToken, ask.text);
+        }
+        continue;
+      }
+
+      if (msg?.type !== 'text') continue;
+      const text = msg.text ?? '';
       const mode = inferMode(event);
       const lang = this.detectLang(text);
 
-      // Bind command: ผูกขบวน <code> / bind <code> in the group.
-      // "ผูกขบวน" alone → explain the locked format (short 6-char code).
+      // Ongoing create flow → consume this answer.
+      if (userId && (await this.handlePendingCreate(userId, text, lang, replyToken, replies))) {
+        continue;
+      }
+
+      // Create a convoy from chat.
+      if (/^(สร้างขบวน|สร้างทริป|create|new trip)$/i.test(text.trim())) {
+        if (userId) {
+          this.pendingCreates.set(userId, { step: 'name', name: null, destination: null });
+        }
+        const start = this.marshal.createStart(lang);
+        replies.push(start);
+        await this.replyText(replyToken, start.text);
+        continue;
+      }
+
+      // Cancel the create flow.
+      if (/^(ยกเลิก|cancel)$/i.test(text.trim())) {
+        if (userId && this.pendingCreates.delete(userId)) {
+          const cancelled = this.marshal.createCancelled(lang);
+          replies.push(cancelled);
+          await this.replyText(replyToken, cancelled.text);
+        }
+        continue;
+      }
+
+      // Bind: "ผูกขบวน" alone → offer the organizer's trips as tappable buttons.
       if (/^(ผูกขบวน|bind|#ขบวน\s*ผูก)$/i.test(text.trim())) {
-        const help = this.marshal.bindHelp(lang);
-        replies.push(help);
-        await this.replyText(replyToken, help.text);
+        if (userId) {
+          const uid = this.ensureUser(userId);
+          const trips = this.myTrips(uid);
+          if (trips.length === 0) {
+            const none = this.marshal.myTripsNone(lang);
+            replies.push(none);
+            await this.replyText(replyToken, none.text);
+          } else {
+            const pick = this.marshal.bindPick(lang);
+            const buttons = trips.slice(0, 10).map((t) => ({
+              label: t.title.slice(0, 20),
+              text: `ผูกขบวน ${t.id.slice(0, 6).toUpperCase()}`,
+            }));
+            replies.push(pick);
+            await this.replyTextPairs(replyToken, pick.text, buttons);
+          }
+        }
         continue;
       }
 

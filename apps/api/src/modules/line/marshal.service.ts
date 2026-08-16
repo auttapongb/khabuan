@@ -195,6 +195,38 @@ export class MarshalService {
     return this.message('not_bound', {}, 'group', lang);
   }
 
+  createStart(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('create_start', {}, 'group', lang);
+  }
+
+  createAskDestination(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('create_ask_destination', {}, 'group', lang);
+  }
+
+  createAskTime(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('create_ask_time', {}, 'group', lang);
+  }
+
+  createDone(
+    title: string,
+    code: string,
+    lang: 'th' | 'en' = 'th',
+  ): MarshalMessage {
+    return this.message('create_done', { title, code }, 'group', lang);
+  }
+
+  myTripsNone(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('my_trips_none', {}, 'group', lang);
+  }
+
+  bindPick(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_pick', {}, 'group', lang);
+  }
+
+  createCancelled(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('create_cancelled', {}, 'group', lang);
+  }
+
   // ── Delivery ────────────────────────────────────────────────────────────
 
   /** Whether LINE Messaging API push is configured (non-demo). */

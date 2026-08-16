@@ -62,6 +62,16 @@ export class LineClient {
     };
   }
 
+  /** Quick replies where the shown label differs from the text it sends. */
+  quickReplyPairs(items: { label: string; text: string }[]): LineQuickReply {
+    return {
+      items: items.map(({ label, text }) => ({
+        type: 'action',
+        action: { type: 'message', label, text },
+      })),
+    };
+  }
+
   private async post(path: string, body: unknown): Promise<void> {
     if (!this.token) {
       this.logger.warn(

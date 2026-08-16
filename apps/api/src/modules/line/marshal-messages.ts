@@ -145,6 +145,34 @@ export const MARSHAL_TEMPLATES = {
     th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่นำขบวนจะดูแลให้ 😊',
     en: 'No convoy bound yet — send "bind <trip id>" first and the marshal will take over 😊',
   },
+  create_start: {
+    th: 'ได้เลย! มาเริ่มสร้างขบวนกัน 🚗\nชื่อทริปอะไรดี? (พิมพ์ชื่อเลย)',
+    en: "Sure! Let's create a convoy 🚗\nWhat's the trip name? (just type it)",
+  },
+  create_ask_destination: {
+    th: 'สุดยอด! ปลายทางอยู่ไหน? 📍\nกด "แชร์ตำแหน่ง" หรือพิมพ์ชื่อสถานที่ก็ได้',
+    en: 'Nice! Where is the destination? 📍\nTap "Share location" or type a place name.',
+  },
+  create_ask_time: {
+    th: 'แล้วนัดหมายวันเวลาอะไรดี? ⏰\nเช่น "พรุ่งนี้ 9:00" หรือ "25/8 9:00"',
+    en: 'What date & time? ⏰\ne.g. "tomorrow 9:00" or "25/8 9:00"',
+  },
+  create_done: {
+    th: '🎉 สร้างขบวน "{title}" แล้ว!\nรหัสขบวน: {code}\nเพิ่มพี่นำขบวนเข้ากรุ๊ป แล้วพิมพ์ "ผูกขบวน {code}" เพื่อผูกได้เลย',
+    en: '🎉 Convoy "{title}" created!\nCode: {code}\nAdd the marshal to the group, then send "bind {code}".',
+  },
+  my_trips_none: {
+    th: 'ยังไม่มีขบวนของตัวเองเลยน้า — สร้างก่อนด้วย "สร้างขบวน" 🚗',
+    en: 'You don\'t have a convoy yet — create one first with "create".',
+  },
+  bind_pick: {
+    th: 'เลือกขบวนที่อยากผูกกับกรุ๊ปนี้เลย 👇',
+    en: 'Pick which convoy to bind to this group 👇',
+  },
+  create_cancelled: {
+    th: 'โอเค ยกเลิกการสร้างขบวนแล้ว — เริ่มใหม่เมื่อไหร่บอกได้เลย 😊',
+    en: 'Okay, cancelled. Start again whenever you like 😊',
+  },
 
   // ── Badge display names (Thai friendly) ────────────────────────────────
   badge_names: {
