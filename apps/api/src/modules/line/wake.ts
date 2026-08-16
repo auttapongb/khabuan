@@ -22,7 +22,7 @@ export function parseWake(
   if (/บรีฟ|brief|ด่าน|toll|easy\s*pass/i.test(t)) return { kind: 'brief' };
   if (/เตือน|remind/i.test(t)) return { kind: 'remind' };
   if (/แชร์|share|เชิญ|invite/i.test(t)) return { kind: 'share' };
-  if (/สถานะ|status|ถึงไหน/i.test(t)) return { kind: 'status' };
+  if (/สถานะ|status|ถึงไหน|เช็คขบวน|เช็คสถานะ/i.test(t)) return { kind: 'status' };
   if (mode === 'group' || GROUP_WAKE.test(t)) return { kind: 'help' };
   return null;
 }

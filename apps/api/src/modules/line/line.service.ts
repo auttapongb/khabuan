@@ -95,6 +95,26 @@ export class LineService {
     return true;
   }
 
+  /** Current convoy status for a bound group (or "not bound" if none). */
+  private statusReply(groupId: string | null): MarshalMessage {
+    if (!groupId) return this.marshal.notBound();
+    const trip = [...this.store.trips.values()].find(
+      (t) => t.lineGroupId === groupId,
+    );
+    if (!trip) return this.marshal.notBound();
+    let arrived = 0;
+    let enroute = 0;
+    let departed = 0;
+    for (const p of this.store.participants.values()) {
+      if (p.tripId !== trip.id) continue;
+      if (p.arrivalStatus === 'CONFIRMED') arrived++;
+      else if (p.sharingState === 'ACTIVE' || p.sharingState === 'PAUSED')
+        enroute++;
+      else departed++;
+    }
+    return this.marshal.statusReply(arrived, enroute, departed);
+  }
+
   async handleWebhookEvents(body: {
     destination?: string;
     events?: unknown[];
@@ -149,11 +169,38 @@ export class LineService {
         if (replyToken) {
           await this.lineClient.reply(replyToken, [{ type: 'text', text: reply.text }]);
         }
+        continue;
       }
 
       // Keyword wake (group stays keyword-only unless #ขบวน).
       const hit = text ? parseWake(text, mode) : null;
-      if (hit) wakes.push(hit.kind);
+      if (hit) {
+        wakes.push(hit.kind);
+        const wakeReply =
+          hit.kind === 'status'
+            ? this.statusReply(groupId)
+            : hit.kind === 'help'
+              ? this.marshal.help()
+              : null;
+        if (wakeReply) {
+          replies.push(wakeReply);
+          if (replyToken) {
+            await this.lineClient.reply(replyToken, [{ type: 'text', text: wakeReply.text }]);
+          }
+        }
+        continue;
+      }
+
+      // Fallback: nothing recognized → offer the menu. DM always; group only when addressed.
+      const addressed =
+        mode === 'dm' || /#ขบวน|#convoy|\bขบวน\b|mcg\s*convoy/i.test(text);
+      if (addressed) {
+        const help = this.marshal.help();
+        replies.push(help);
+        if (replyToken) {
+          await this.lineClient.reply(replyToken, [{ type: 'text', text: help.text }]);
+        }
+      }
     }
 
     this.logger.log(

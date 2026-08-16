@@ -171,6 +171,14 @@ export class MarshalService {
     return this.message('bind_confirm');
   }
 
+  help(): MarshalMessage {
+    return this.message('help_menu');
+  }
+
+  notBound(): MarshalMessage {
+    return this.message('not_bound');
+  }
+
   // ── Delivery ────────────────────────────────────────────────────────────
 
   /** Whether LINE Messaging API push is configured (non-demo). */

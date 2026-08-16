@@ -129,6 +129,14 @@ export const MARSHAL_TEMPLATES = {
     th: '🎉 ผูกขบวนสำเร็จ! จากนี้พี่นำขบวนจะรายงานสถานะในกรุ๊ปนี้ — เช็คขบวนได้ด้วย "เช็คขบวน"',
     en: '🎉 Convoy bound! The marshal will report status in this group — try "check".',
   },
+  help_menu: {
+    th: 'พี่นำขบวนช่วยได้นะ 🚗\n• "ผูกขบวน <รหัสทริป>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
+    en: 'Marshal can help 🚗\n• "bind <trip id>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
+  },
+  not_bound: {
+    th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่นำขบวนจะดูแลให้ 😊',
+    en: 'No convoy bound yet — send "bind <trip id>" first and the marshal will take over 😊',
+  },
 
   // ── Badge display names (Thai friendly) ────────────────────────────────
   badge_names: {
