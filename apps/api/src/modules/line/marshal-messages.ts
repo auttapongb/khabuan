@@ -68,7 +68,7 @@ export const MARSHAL_TEMPLATES = {
     en: '{remaining} cars still coming, ETA ~{eta} min — no rush, drive safe 😊',
   },
   nag_dm: {
-    th: 'ถึงช้าไม่เป็นไรเลยนะ แต่บอกพี่นำขบวนหน่อยว่าปลอดภัย 💙',
+    th: 'ถึงช้าไม่เป็นไรเลยนะ แต่บอกพี่หน่อยว่าปลอดภัย 💙',
     en: 'Running late is totally fine — just tell me you\'re safe 💙',
   },
 
@@ -78,7 +78,7 @@ export const MARSHAL_TEMPLATES = {
     en: 'A car is at a pit stop — convoy is waiting. Safety first.',
   },
   lost: {
-    th: '📍 พี่นำขบวนส่งจุดนัดหมายที่ใกล้สุดให้แล้ว ตามไปเจอกันตรงนั้นนะ ไม่ต้องตกใจ 😊',
+    th: '📍 พี่ส่งจุดนัดหมายที่ใกล้สุดให้แล้ว ตามไปเจอกันตรงนั้นนะ ไม่ต้องตกใจ 😊',
     en: '📍 I sent the nearest meeting point — meet there, don\'t worry 😊',
   },
 
@@ -102,7 +102,7 @@ export const MARSHAL_TEMPLATES = {
 
   // ── Chat-as-interface command confirmations ────────────────────────────
   arrived_confirm: {
-    th: '🏁 ถึงแล้ว! พี่นำขบวนลงบันทึกให้แล้ว ปลอดภัยดีมาก',
+    th: '🏁 ถึงแล้ว! พี่ลงบันทึกให้แล้ว ปลอดภัยดีมาก',
     en: '🏁 Arrived! I logged it — great to see you safe.',
   },
   departed_confirm: {
@@ -122,15 +122,15 @@ export const MARSHAL_TEMPLATES = {
     en: 'Convoy status: {arrived} arrived · {enroute} en route · {departed} departed.',
   },
   join_greeting: {
-    th: 'สวัสดีทุกคน! พี่นำขบวนมาแล้ว 🚗\nพี่จะช่วยดูแลขบวนนี้ — แตะปุ่มด้านล่างหรือพิมพ์คำสั่งได้เลยน้า\nหัวหน้าขบวนพิมพ์ "ผูกขบวน <รหัสทริป>" เพื่อเริ่ม',
+    th: 'สวัสดีทุกคน! พี่มาแล้ว 🚗\nพี่จะช่วยดูแลขบวนนี้ — แตะปุ่มด้านล่างหรือพิมพ์คำสั่งได้เลยน้า\nหัวหน้าขบวนพิมพ์ "ผูกขบวน <รหัสทริป>" เพื่อเริ่ม',
     en: 'Hi everyone! I\'m here 🚗\nTap the buttons below or type a command.\nOrganizer: send "bind <trip id>" to get started.',
   },
   bind_confirm: {
-    th: '🎉 ผูกขบวนสำเร็จ!\nต่อไปนี้พี่นำขบวนจะคอยรายงานสถานะให้ — สมาชิกพิมพ์ "ถึงแล้ว" ตอนถึงปลายทางได้เลย 🏁',
+    th: '🎉 ผูกขบวนสำเร็จ!\nต่อไปนี้พี่จะคอยรายงานสถานะให้ — สมาชิกพิมพ์ "ถึงแล้ว" ตอนถึงปลายทางได้เลย 🏁',
     en: '🎉 Convoy bound!\nI\'ll report status from here — members type "arrived" at the destination 🏁',
   },
   help_menu: {
-    th: 'พี่นำขบวนช่วยได้นะ 🚗\n• "ผูกขบวน <รหัส>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
+    th: 'พี่ช่วยได้นะ 🚗\n• "ผูกขบวน <รหัส>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
     en: 'I can help 🚗\n• "bind <trip id>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
   },
   bind_help: {
@@ -142,7 +142,7 @@ export const MARSHAL_TEMPLATES = {
     en: 'Couldn\'t find that code 🤔 Double-check the 6-char code, or find it in the Khabuan app.',
   },
   not_bound: {
-    th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่นำขบวนจะดูแลให้ 😊',
+    th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่จะดูแลให้ 😊',
     en: 'No convoy bound yet — send "bind <trip id>" first and I\'ll take over 😊',
   },
   create_start: {
@@ -158,7 +158,7 @@ export const MARSHAL_TEMPLATES = {
     en: 'What date & time? ⏰\ne.g. "tomorrow 9:00" or "25/8 9:00"',
   },
   create_done: {
-    th: '🎉 สร้างขบวน "{title}" แล้ว!\nรหัสขบวน: {code}\nเพิ่มพี่นำขบวนเข้ากรุ๊ป แล้วพิมพ์ "ผูกขบวน {code}" เพื่อผูกได้เลย',
+    th: '🎉 สร้างขบวน "{title}" แล้ว!\nรหัสขบวน: {code}\nเพิ่มพี่เข้ากรุ๊ป แล้วพิมพ์ "ผูกขบวน {code}" เพื่อผูกได้เลย',
     en: '🎉 Convoy "{title}" created!\nCode: {code}\nAdd me to the group, then send "bind {code}".',
   },
   my_trips_none: {
