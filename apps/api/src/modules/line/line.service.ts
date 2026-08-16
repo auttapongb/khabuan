@@ -62,23 +62,28 @@ export class LineService {
     }
   }
 
+  /** Detect reply language: Thai if any Thai chars, else English. */
+  detectLang(text: string): 'th' | 'en' {
+    return /[\u0E00-\u0E7F]/.test(text) ? 'th' : 'en';
+  }
+
   /**
-   * Turn a recognized chat command into the marshal's friendly Thai reply.
-   * This is the chat-as-interface loop: type "ถึงแล้ว" → พี่นำขบวน answers.
+   * Turn a recognized chat command into the marshal's friendly reply.
+   * Accepts both Thai and English; replies in the same language as the input.
    */
-  personaReply(text: string): MarshalMessage | null {
+  personaReply(text: string, lang: 'th' | 'en' = 'th'): MarshalMessage | null {
     const t = text.trim().toLowerCase();
-    if (/ถึงแล้ว|ถึงอนุสาวรีย์|ปิดท้ายถึง|^ถึง$/.test(t)) {
-      return this.marshal.confirmArrival();
+    if (/ถึงแล้ว|ถึงอนุสาวรีย์|ปิดท้ายถึง|^ถึง$|arrived|arrive|arrival|reached|made it|i'?m here/i.test(t)) {
+      return this.marshal.confirmArrival(lang);
     }
-    if (/ออกแล้ว|ออกตัว|รถนำออก/.test(t)) {
-      return this.marshal.confirmDeparture();
+    if (/ออกแล้ว|ออกตัว|รถนำออก|departed|departing|departure|heading out|leaving|i'?m out/i.test(t)) {
+      return this.marshal.confirmDeparture(lang);
     }
-    if (/พักปั๊ม|แวะปั๊ม|fuel stop/.test(t)) {
-      return this.marshal.confirmPitStop();
+    if (/พักปั๊ม|แวะปั๊ม|fuel stop|pit stop|gas station|rest stop|refuel/i.test(t)) {
+      return this.marshal.confirmPitStop(lang);
     }
-    if (/หลงทาง|หลง|หาไม่เจอ/.test(t)) {
-      return this.marshal.helpLost();
+    if (/หลงทาง|หาไม่เจอ|หลง|lost|can'?t find|i'?m lost/i.test(t)) {
+      return this.marshal.helpLost(lang);
     }
     return null;
   }
@@ -96,12 +101,15 @@ export class LineService {
   }
 
   /** Current convoy status for a bound group (or "not bound" if none). */
-  private statusReply(groupId: string | null): MarshalMessage {
-    if (!groupId) return this.marshal.notBound();
+  private statusReply(
+    groupId: string | null,
+    lang: 'th' | 'en' = 'th',
+  ): MarshalMessage {
+    if (!groupId) return this.marshal.notBound(lang);
     const trip = [...this.store.trips.values()].find(
       (t) => t.lineGroupId === groupId,
     );
-    if (!trip) return this.marshal.notBound();
+    if (!trip) return this.marshal.notBound(lang);
     let arrived = 0;
     let enroute = 0;
     let departed = 0;
@@ -112,7 +120,7 @@ export class LineService {
         enroute++;
       else departed++;
     }
-    return this.marshal.statusReply(arrived, enroute, departed);
+    return this.marshal.statusReply(arrived, enroute, departed, lang);
   }
 
   async handleWebhookEvents(body: {
@@ -146,6 +154,7 @@ export class LineService {
       if (event.type !== 'message' || event.message?.type !== 'text') continue;
       const text = event.message.text ?? '';
       const mode = inferMode(event);
+      const lang = this.detectLang(text);
 
       // Bind command: ผูกขบวน <tripId> in the group.
       const bind = BIND_RE.exec(text);
@@ -163,7 +172,7 @@ export class LineService {
       }
 
       // Chat-as-interface: the marshal answers recognized commands (both group & dm).
-      const reply = this.personaReply(text);
+      const reply = this.personaReply(text, lang);
       if (reply) {
         replies.push(reply);
         if (replyToken) {
@@ -178,9 +187,9 @@ export class LineService {
         wakes.push(hit.kind);
         const wakeReply =
           hit.kind === 'status'
-            ? this.statusReply(groupId)
+            ? this.statusReply(groupId, lang)
             : hit.kind === 'help'
-              ? this.marshal.help()
+              ? this.marshal.help(lang)
               : null;
         if (wakeReply) {
           replies.push(wakeReply);
@@ -195,7 +204,7 @@ export class LineService {
       const addressed =
         mode === 'dm' || /#ขบวน|#convoy|\bขบวน\b|mcg\s*convoy/i.test(text);
       if (addressed) {
-        const help = this.marshal.help();
+        const help = this.marshal.help(lang);
         replies.push(help);
         if (replyToken) {
           await this.lineClient.reply(replyToken, [{ type: 'text', text: help.text }]);

@@ -40,11 +40,13 @@ export class MarshalService {
   private render(
     key: MarshalTemplateKey,
     vars: Record<string, string | number> = {},
+    lang: 'th' | 'en' = 'th',
   ): string {
     const tpl = MARSHAL_TEMPLATES[key] as MarshalTemplate;
+    const base = lang === 'en' ? tpl.en : tpl.th;
     return Object.entries(vars).reduce(
       (out, [k, v]) => out.replaceAll(`{${k}}`, String(v)),
-      tpl.th,
+      base,
     );
   }
 
@@ -53,8 +55,9 @@ export class MarshalService {
     key: MarshalTemplateKey,
     vars: Record<string, string | number> = {},
     target: MarshalTarget = 'group',
+    lang: 'th' | 'en' = 'th',
   ): MarshalMessage {
-    return { target, text: this.render(key, vars), key };
+    return { target, text: this.render(key, vars, lang), key };
   }
 
   // ── Persona lines for trip lifecycle events ─────────────────────────────
@@ -143,24 +146,29 @@ export class MarshalService {
 
   // ── Chat-as-interface command responses ─────────────────────────────────
 
-  confirmArrival(): MarshalMessage {
-    return this.message('arrived_confirm');
+  confirmArrival(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('arrived_confirm', {}, 'group', lang);
   }
 
-  confirmDeparture(): MarshalMessage {
-    return this.message('departed_confirm');
+  confirmDeparture(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('departed_confirm', {}, 'group', lang);
   }
 
-  confirmPitStop(): MarshalMessage {
-    return this.message('pitstop_confirm');
+  confirmPitStop(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('pitstop_confirm', {}, 'group', lang);
   }
 
-  helpLost(): MarshalMessage {
-    return this.message('lost_help');
+  helpLost(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('lost_help', {}, 'group', lang);
   }
 
-  statusReply(arrived: number, enroute: number, departed: number): MarshalMessage {
-    return this.message('status_reply', { arrived, enroute, departed });
+  statusReply(
+    arrived: number,
+    enroute: number,
+    departed: number,
+    lang: 'th' | 'en' = 'th',
+  ): MarshalMessage {
+    return this.message('status_reply', { arrived, enroute, departed }, 'group', lang);
   }
 
   joinGreeting(): MarshalMessage {
@@ -171,12 +179,12 @@ export class MarshalService {
     return this.message('bind_confirm');
   }
 
-  help(): MarshalMessage {
-    return this.message('help_menu');
+  help(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('help_menu', {}, 'group', lang);
   }
 
-  notBound(): MarshalMessage {
-    return this.message('not_bound');
+  notBound(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('not_bound', {}, 'group', lang);
   }
 
   // ── Delivery ────────────────────────────────────────────────────────────
