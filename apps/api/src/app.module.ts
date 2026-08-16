@@ -15,6 +15,7 @@ import { InvitesModule } from './modules/invites/invites.module';
 import { PttModule } from './modules/ptt/ptt.module';
 import { MemoryModule } from './infrastructure/memory/memory.module';
 import { PrismaModule } from './infrastructure/prisma/prisma.module';
+import { PersistenceModule } from './infrastructure/persistence/persistence.module';
 import { RedisModule } from './infrastructure/redis/redis.module';
 import { QueueModule } from './infrastructure/queue/queue.module';
 import { AuthGuard } from './common/guards/auth.guard';
@@ -28,6 +29,7 @@ import { ApiExceptionFilter } from './common/filters/api-exception.filter';
     }),
     MemoryModule,
     PrismaModule,
+    PersistenceModule,
     RedisModule,
     QueueModule,
     AuthModule,
