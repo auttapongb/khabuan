@@ -499,8 +499,14 @@ export class LineService {
         continue;
       }
 
-      // Bind: "ผูกขบวน" alone → offer the organizer's trips as tappable buttons.
+      // Bind: "ผูกขบวน" alone → (group) offer trips as buttons; (DM) explain group need.
       if (/^(ผูกขบวน|bind|#ขบวน\s*ผูก)$/i.test(text.trim())) {
+        if (!groupId) {
+          const needGroup = this.marshal.bindNeedGroup(lang);
+          replies.push(needGroup);
+          await this.replyText(replyToken, needGroup.text);
+          continue;
+        }
         if (userId) {
           const uid = this.ensureUser(userId);
           const trips = this.myTrips(uid);
@@ -523,7 +529,13 @@ export class LineService {
 
       const bind = BIND_RE.exec(text);
       const code = bind?.[1] ?? bind?.[2] ?? bind?.[3];
-      if (code && groupId) {
+      if (code) {
+        if (!groupId) {
+          const needGroup = this.marshal.bindNeedGroup(lang);
+          replies.push(needGroup);
+          await this.replyText(replyToken, needGroup.text);
+          continue;
+        }
         const tripId = this.resolveTripId(code);
         if (!tripId) {
           const nf = this.marshal.bindNotFound(lang);

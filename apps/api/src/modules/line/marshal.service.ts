@@ -183,6 +183,10 @@ export class MarshalService {
     return this.message('bind_help', {}, 'group', lang);
   }
 
+  bindNeedGroup(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_need_group', {}, 'group', lang);
+  }
+
   bindNotFound(lang: 'th' | 'en' = 'th'): MarshalMessage {
     return this.message('bind_not_found', {}, 'group', lang);
   }

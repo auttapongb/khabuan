@@ -147,6 +147,29 @@ describe('LineService — นำขบวน group bot', () => {
     );
   });
 
+  it('explains that binding needs a group when ผูกขบวน <code> is sent in a DM', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'rt-dmbind',
+          message: { type: 'text', text: 'ผูกขบวน 7E3D21' },
+          source: { type: 'user', userId: 'u1' },
+        },
+      ],
+    });
+    expect(client.reply).toHaveBeenCalledWith(
+      'rt-dmbind',
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('กรุ๊ป'),
+        }),
+      ]),
+    );
+  });
+
   it('replies to ถึงแล้ว in the group (chat-as-interface)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

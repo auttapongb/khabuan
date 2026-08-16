@@ -135,7 +135,11 @@ export const MARSHAL_TEMPLATES = {
   },
   bind_help: {
     th: 'ผูกขบวนแบบนี้เลยน้า 👇\n"ผูกขบวน <รหัส>"\nตัวอย่าง: ผูกขบวน 444444\n(รหัส 6 ตัว — ดูได้ในแอพนำขบวน หน้ารายละเอียดทริป)',
-    en: 'Bind like this 👇\n"bind <code>"\nExample: bind 444444\n(the 6-char code is in the Khabuan app, on the trip page)',
+    en: 'Bind like this 👇\n"bind <code>"\ne.g. bind 444444\n(find the 6-char code in the Khabuan app / trip details)',
+  },
+  bind_need_group: {
+    th: 'ผูกขบวนต้องทำในกรุ๊ป LINE นะจ๊ะ 🚗\nสร้างกรุ๊ปขบวน แล้วเพิ่มพี่เข้าไป จากนั้นพิมพ์ "ผูกขบวน <รหัส>" ในกรุ๊ปนั้นได้เลย',
+    en: 'Binding happens in a LINE group 🚗\nCreate a convoy group, add me to it, then send "bind <code>" there.',
   },
   bind_not_found: {
     th: 'หารหัสนี้ไม่เจอน้า 🤔 ลองเช็ครหัส 6 ตัวอีกที หรือดูได้ในแอพนำขบวน',
