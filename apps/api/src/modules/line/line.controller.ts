@@ -1,6 +1,8 @@
 import {
   Controller,
   Headers,
+  HttpCode,
+  HttpStatus,
   Post,
   Req,
   UnauthorizedException,
@@ -16,6 +18,7 @@ export class LineController {
   constructor(private readonly line: LineService) {}
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('webhook')
   @ApiExcludeEndpoint()
   webhook(
