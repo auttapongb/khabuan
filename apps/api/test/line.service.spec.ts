@@ -80,6 +80,36 @@ describe('LineService — นำขบวน group bot', () => {
     expect(client.reply).toHaveBeenCalled();
   });
 
+  it('records arrival when a member sends ถึงแล้ว in a bound group', async () => {
+    const { store, svc } = makeLineService();
+    // Bind demo trip to group g4.
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'b1',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g4', userId: 'u1' },
+        },
+      ],
+    });
+    // Member u2 reports arrival.
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'a1',
+          message: { type: 'text', text: 'ถึงแล้ว' },
+          source: { type: 'group', groupId: 'g4', userId: 'u2' },
+        },
+      ],
+    });
+    const uid = [...store.users.values()].find((u) => u.lineSubject === 'u2')!.id;
+    const p = store.participants.get(`${DEMO_TRIP}:${uid}`);
+    expect(p?.arrivalStatus).toBe('CONFIRMED');
+    expect(p?.arrivedAt).toBeInstanceOf(Date);
+  });
+
   it('offers to create a convoy when ผูกขบวน has no trips yet', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

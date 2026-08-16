@@ -16,10 +16,15 @@ import type { TripRecord } from '../../infrastructure/memory/types';
 const BIND_RE =
   /ผูกขบวน\s+([0-9a-zA-Z-]{4,})|#ขบวน\s*ผูก\s*([0-9a-zA-Z-]{4,})|bind\s+([0-9a-zA-Z-]{4,})/i;
 
+/** Asia/Bangkok is UTC+7 with no DST — used to build trip times from chat. */
+const BKK_OFFSET_MS = 7 * 60 * 60 * 1000;
+
 interface PendingCreate {
   step: 'name' | 'destination' | 'time';
   name: string | null;
   destination: { lat: number; lng: number; label: string } | null;
+  lang: 'th' | 'en';
+  startedAt: number;
 }
 
 @Injectable()
@@ -181,10 +186,24 @@ export class LineService {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
-  /** Parse a Thai/English date-time string into a Date, or null. */
+  /** Build a Date for a Bangkok wall-clock time (UTC+7) as a UTC instant. */
+  private bangkokDate(
+    y: number,
+    mo: number,
+    d: number,
+    hh: number,
+    mm: number,
+  ): Date {
+    return new Date(Date.UTC(y, mo, d, hh, mm) - BKK_OFFSET_MS);
+  }
+
+  /** Parse a Thai/English date-time string into a Date (Bangkok time), or null. */
   private parseArrival(text: string): Date | null {
     const t = text.trim();
-    const now = new Date();
+    const nowBkk = new Date(Date.now() + BKK_OFFSET_MS);
+    const y = nowBkk.getUTCFullYear();
+    const mo = nowBkk.getUTCMonth();
+    const d = nowBkk.getUTCDate();
     const timeMatch = t.match(/(\d{1,2}):(\d{2})/);
     const hh = timeMatch ? parseInt(timeMatch[1], 10) : 9;
     const mm = timeMatch ? parseInt(timeMatch[2], 10) : 0;
@@ -194,8 +213,8 @@ export class LineService {
     if (dateMatch) {
       const day = parseInt(dateMatch[1], 10);
       const month = parseInt(dateMatch[2], 10) - 1;
-      const year = dateMatch[3] ? parseInt(dateMatch[3], 10) : now.getFullYear();
-      return new Date(year, month, day, hh, mm);
+      const year = dateMatch[3] ? parseInt(dateMatch[3], 10) : y;
+      return this.bangkokDate(year, month, day, hh, mm);
     }
 
     // Thai month names (e.g. "25 ส.ค." / "25 สิงหาคม")
@@ -214,20 +233,22 @@ export class LineService {
       const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const m = t.toLowerCase().match(new RegExp(`(\\d{1,2})\\s*${escaped}`));
       if (m) {
-        return new Date(now.getFullYear(), monthIdx, parseInt(m[1], 10), hh, mm);
+        return this.bangkokDate(y, monthIdx, parseInt(m[1], 10), hh, mm);
       }
     }
 
     if (/พรุ่งนี้|tomorrow/i.test(t)) {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, hh, mm);
+      return this.bangkokDate(y, mo, d + 1, hh, mm);
     }
     if (/วันนี้|today/i.test(t)) {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
+      return this.bangkokDate(y, mo, d, hh, mm);
     }
     if (timeMatch) {
-      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hh, mm);
-      if (d.getTime() < now.getTime()) d.setDate(d.getDate() + 1);
-      return d;
+      const parsed = this.bangkokDate(y, mo, d, hh, mm);
+      if (parsed.getTime() < Date.now()) {
+        return this.bangkokDate(y, mo, d + 1, hh, mm);
+      }
+      return parsed;
     }
     return null;
   }
@@ -245,6 +266,13 @@ export class LineService {
   ): Promise<boolean> {
     const pending = this.pendingCreates.get(lineUserId);
     if (!pending) return false;
+
+    // Stale flow (left hanging > 15 min) → drop it so normal commands work again.
+    if (Date.now() - pending.startedAt > 15 * 60 * 1000) {
+      this.pendingCreates.delete(lineUserId);
+      return false;
+    }
+    lang = pending.lang;
 
     if (pending.step === 'name') {
       pending.name = text.trim();
@@ -402,6 +430,68 @@ export class LineService {
     return this.marshal.statusReply(arrived, enroute, departed, lang);
   }
 
+  /** The trip bound to a group, or null. */
+  private boundTrip(groupId: string | null): TripRecord | null {
+    if (!groupId) return null;
+    return (
+      [...this.store.trips.values()].find((t) => t.lineGroupId === groupId) ??
+      null
+    );
+  }
+
+  /** Find or create a participant for (trip, user). */
+  private ensureParticipant(tripId: string, userId: string): void {
+    const key = `${tripId}:${userId}`;
+    if (this.store.participants.has(key)) return;
+    const now = new Date();
+    this.store.participants.set(key, {
+      id: randomUUID(),
+      tripId,
+      userId,
+      vehicleId: null,
+      role: 'MEMBER' as never,
+      sharingState: 'OFF' as never,
+      arrivalStatus: 'NONE' as never,
+      arrivedAt: null,
+      visibility: 'exact',
+      joinedAt: now,
+      updatedAt: now,
+      geofenceEnteredAt: null,
+    });
+  }
+
+  /**
+   * Persist a chat status command against the group's bound trip so that
+   * "เช็คขบวน" reports real numbers. No-ops outside a bound group. Mirrors
+   * the regexes in personaReply().
+   */
+  private recordStatus(
+    text: string,
+    groupId: string | null,
+    userId: string | null,
+  ): void {
+    if (!groupId || !userId) return;
+    const trip = this.boundTrip(groupId);
+    if (!trip) return;
+    const uid = this.ensureUser(userId);
+    this.ensureParticipant(trip.id, uid);
+    const p = this.store.participants.get(`${trip.id}:${uid}`);
+    if (!p) return;
+    const t = text.trim().toLowerCase();
+    const now = new Date();
+    if (/ถึงแล้ว|arrived|arrive|reached|made it|i'?m here/i.test(t)) {
+      p.arrivalStatus = 'CONFIRMED' as never;
+      p.arrivedAt = p.arrivedAt ?? now;
+    } else if (/ออกแล้ว|ออกตัว|departed|departing|heading out|leaving/i.test(t)) {
+      p.sharingState = 'ACTIVE' as never;
+      p.arrivalStatus = 'NONE' as never;
+      p.arrivedAt = null;
+    } else if (/พักปั๊ม|แวะปั๊ม|pit stop|fuel stop|gas station|refuel/i.test(t)) {
+      p.sharingState = 'PAUSED' as never;
+    }
+    p.updatedAt = now;
+  }
+
   async handleWebhookEvents(body: {
     destination?: string;
     events?: unknown[];
@@ -461,7 +551,7 @@ export class LineService {
             label: msg.address ?? 'จุดหมาย',
           };
           pending.step = 'time';
-          const ask = this.marshal.createAskTime('th');
+          const ask = this.marshal.createAskTime(pending.lang);
           replies.push(ask);
           await this.replyText(replyToken, ask.text);
         }
@@ -481,7 +571,13 @@ export class LineService {
       // Create a convoy from chat.
       if (/^(สร้างขบวน|สร้างทริป|create|new trip)$/i.test(text.trim())) {
         if (userId) {
-          this.pendingCreates.set(userId, { step: 'name', name: null, destination: null });
+          this.pendingCreates.set(userId, {
+            step: 'name',
+            name: null,
+            destination: null,
+            lang,
+            startedAt: Date.now(),
+          });
         }
         const start = this.marshal.createStart(lang);
         replies.push(start);
@@ -553,6 +649,7 @@ export class LineService {
       // Chat-as-interface: the marshal answers recognized commands (both group & dm).
       const reply = this.personaReply(text, lang);
       if (reply) {
+        this.recordStatus(text, groupId, userId);
         replies.push(reply);
         await this.replyText(replyToken, reply.text, this.menuButtons(lang));
         continue;
