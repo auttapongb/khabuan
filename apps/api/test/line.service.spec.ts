@@ -42,7 +42,7 @@ describe('LineService — นำขบวน group bot', () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: 'text',
-          text: expect.stringContaining('พี่นำขบวน'),
+          text: expect.stringContaining('พี่มาแล้ว'),
         }),
       ]),
     );
