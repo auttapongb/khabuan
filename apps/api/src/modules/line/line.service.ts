@@ -10,9 +10,9 @@ import { MarshalService, MarshalMessage } from './marshal.service';
 import { LineClient, type LineTextMessage } from './line-client';
 import { MemoryStore } from '../../infrastructure/memory/memory.store';
 
-/** ผูกขบวน <tripId> / #ขบวน ผูก <tripId> / bind <tripId> */
+/** ผูกขบวน <code> / #ขบวน ผูก <code> / bind <code> (code = full UUID or short 6-char prefix) */
 const BIND_RE =
-  /ผูกขบวน\s+([0-9a-fA-F-]{8,})|#ขบวน\s*ผูก\s*([0-9a-fA-F-]{8,})|bind\s+([0-9a-fA-F-]{8,})/i;
+  /ผูกขบวน\s+([0-9a-zA-Z-]{4,})|#ขบวน\s*ผูก\s*([0-9a-zA-Z-]{4,})|bind\s+([0-9a-zA-Z-]{4,})/i;
 
 @Injectable()
 export class LineService {
@@ -121,6 +121,22 @@ export class LineService {
     return true;
   }
 
+  /**
+   * Resolve a bind code → trip id. Accepts the full UUID or a short prefix
+   * (the first N chars of the id, case-insensitive) — the "locked format"
+   * that keeps the group bind easy to type.
+   */
+  private resolveTripId(code: string): string | null {
+    const c = code.trim().toUpperCase();
+    if (!c) return null;
+    if (this.store.trips.has(code)) return code;
+    if (this.store.trips.has(c)) return c;
+    const matches = [...this.store.trips.keys()].filter((id) =>
+      id.toUpperCase().startsWith(c),
+    );
+    return matches.length === 1 ? matches[0] : null;
+  }
+
   /** Current convoy status for a bound group (or "not bound" if none). */
   private statusReply(
     groupId: string | null,
@@ -188,14 +204,27 @@ export class LineService {
       const mode = inferMode(event);
       const lang = this.detectLang(text);
 
-      // Bind command: ผูกขบวน <tripId> in the group.
+      // Bind command: ผูกขบวน <code> / bind <code> in the group.
+      // "ผูกขบวน" alone → explain the locked format (short 6-char code).
+      if (/^(ผูกขบวน|bind|#ขบวน\s*ผูก)$/i.test(text.trim())) {
+        const help = this.marshal.bindHelp(lang);
+        replies.push(help);
+        await this.replyText(replyToken, help.text);
+        continue;
+      }
+
       const bind = BIND_RE.exec(text);
-      const tripId = bind?.[1] ?? bind?.[2] ?? bind?.[3];
-      if (tripId && groupId) {
-        const ok = this.bindGroup(tripId, groupId);
-        const confirm = ok
-          ? this.marshal.bindConfirm()
-          : this.marshal.message('lost', {}); // reuse a friendly "no worries" line
+      const code = bind?.[1] ?? bind?.[2] ?? bind?.[3];
+      if (code && groupId) {
+        const tripId = this.resolveTripId(code);
+        if (!tripId) {
+          const nf = this.marshal.bindNotFound(lang);
+          replies.push(nf);
+          await this.replyText(replyToken, nf.text);
+          continue;
+        }
+        this.bindGroup(tripId, groupId);
+        const confirm = this.marshal.bindConfirm();
         replies.push(confirm);
         await this.replyText(replyToken, confirm.text, this.menuButtons(lang));
         continue;

@@ -64,6 +64,45 @@ describe('LineService — นำขบวน group bot', () => {
     expect(client.reply).toHaveBeenCalled();
   });
 
+  it('binds a group via short 6-char code prefix (locked format)', async () => {
+    const { store, client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'rt-short',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'g3', userId: 'u1' },
+        },
+      ],
+    });
+    expect(store.trips.get(DEMO_TRIP)?.lineGroupId).toBe('g3');
+    expect(client.reply).toHaveBeenCalled();
+  });
+
+  it('explains the format when ผูกขบวน has no code', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'rt-bindhelp',
+          message: { type: 'text', text: 'ผูกขบวน' },
+          source: { type: 'group', groupId: 'g1', userId: 'u1' },
+        },
+      ],
+    });
+    expect(client.reply).toHaveBeenCalledWith(
+      'rt-bindhelp',
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'text',
+          text: expect.stringContaining('รหัส'),
+        }),
+      ]),
+    );
+  });
+
   it('replies to ถึงแล้ว in the group (chat-as-interface)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

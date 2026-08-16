@@ -179,6 +179,14 @@ export class MarshalService {
     return this.message('bind_confirm');
   }
 
+  bindHelp(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_help', {}, 'group', lang);
+  }
+
+  bindNotFound(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('bind_not_found', {}, 'group', lang);
+  }
+
   help(lang: 'th' | 'en' = 'th'): MarshalMessage {
     return this.message('help_menu', {}, 'group', lang);
   }

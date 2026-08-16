@@ -130,8 +130,16 @@ export const MARSHAL_TEMPLATES = {
     en: '🎉 Convoy bound!\nThe marshal will report status from here — members type "arrived" at the destination 🏁',
   },
   help_menu: {
-    th: 'พี่นำขบวนช่วยได้นะ 🚗\n• "ผูกขบวน <รหัสทริป>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
+    th: 'พี่นำขบวนช่วยได้นะ 🚗\n• "ผูกขบวน <รหัส>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
     en: 'Marshal can help 🚗\n• "bind <trip id>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
+  },
+  bind_help: {
+    th: 'ผูกขบวนแบบนี้เลยน้า 👇\n"ผูกขบวน <รหัส>"\nตัวอย่าง: ผูกขบวน 444444\n(รหัส 6 ตัว — ดูได้ในแอพนำขบวน หน้ารายละเอียดทริป)',
+    en: 'Bind like this 👇\n"bind <code>"\nExample: bind 444444\n(the 6-char code is in the Khabuan app, on the trip page)',
+  },
+  bind_not_found: {
+    th: 'หารหัสนี้ไม่เจอน้า 🤔 ลองเช็ครหัส 6 ตัวอีกที หรือดูได้ในแอพนำขบวน',
+    en: 'Couldn\'t find that code 🤔 Double-check the 6-char code, or find it in the Khabuan app.',
   },
   not_bound: {
     th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่นำขบวนจะดูแลให้ 😊',
