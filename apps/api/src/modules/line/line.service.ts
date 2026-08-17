@@ -22,6 +22,8 @@ const ARRIVAL_RE = /ถึงแล้ว|arrived|arrive|reached|made it|i'?m he
 const DEPARTURE_RE = /ออกตัว|ออกแล้ว|departed|departing|heading out|leaving|i'?m out/i;
 const PITSTOP_RE = /แวะปั๊ม|พักปั๊ม|pit stop|fuel stop|gas station|refuel|rest stop/i;
 const LOST_RE = /หลงทาง|หาไม่เจอ|lost|can'?t find|i'?m lost/i;
+const RESUME_RE =
+  /ไปต่อ|เข้าทาง|กลับมาแล้ว|กลับเข้ารูป|กลับเส้นทาง|back on track|found my way|resume|on my way again|heading out again/i;
 const NEGATION_RE = /ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/;
 
 interface PendingCreate {
@@ -55,6 +57,33 @@ export class LineService {
       msg.quickReply = this.lineClient.quickReply(quickLabels);
     }
     await this.lineClient.reply(replyToken, [msg]);
+  }
+
+  /** Reply to "หลงทาง" with the trip's destination pin + reassurance. */
+  private async replyLost(
+    replyToken: string | undefined,
+    text: string,
+    groupId: string | null,
+    lang: 'th' | 'en',
+  ): Promise<void> {
+    if (!replyToken) return;
+    const trip = groupId ? this.boundTrip(groupId) : null;
+    const dest = trip?.destination as { lat?: number; lng?: number } | undefined;
+    if (dest && typeof dest.lat === 'number' && typeof dest.lng === 'number') {
+      const label = (trip?.notes as string | undefined)?.trim();
+      await this.lineClient.reply(replyToken, [
+        {
+          type: 'location',
+          title: 'จุดหมายปลายทาง',
+          address: label || 'จุดหมายปลายทาง',
+          latitude: dest.lat,
+          longitude: dest.lng,
+        },
+        { type: 'text', text, quickReply: this.lineClient.quickReply(this.menuButtons(lang)) },
+      ]);
+    } else {
+      await this.replyText(replyToken, text, this.menuButtons(lang));
+    }
   }
 
   /** Reply with quick replies whose labels differ from the text they send. */
@@ -406,6 +435,7 @@ export class LineService {
     if (NEGATION_RE.test(t)) return null;
     if (ARRIVAL_RE.test(t)) return this.marshal.confirmArrival(lang);
     if (DEPARTURE_RE.test(t)) return this.marshal.confirmDeparture(lang);
+    if (RESUME_RE.test(t)) return this.marshal.confirmResume(lang);
     if (PITSTOP_RE.test(t)) return this.marshal.confirmPitStop(lang);
     if (LOST_RE.test(t)) return this.marshal.helpLost(lang);
     return null;
@@ -526,7 +556,7 @@ export class LineService {
     if (ARRIVAL_RE.test(t)) {
       p.arrivalStatus = 'CONFIRMED' as never;
       p.arrivedAt = p.arrivedAt ?? now;
-    } else if (DEPARTURE_RE.test(t)) {
+    } else if (DEPARTURE_RE.test(t) || RESUME_RE.test(t)) {
       p.sharingState = 'ACTIVE' as never;
       p.arrivalStatus = 'NONE' as never;
       p.arrivedAt = null;
@@ -718,7 +748,11 @@ export class LineService {
       if (reply) {
         this.recordStatus(text, groupId, userId);
         replies.push(reply);
-        await this.replyText(replyToken, reply.text, this.menuButtons(lang));
+        if (LOST_RE.test(text.trim().toLowerCase())) {
+          await this.replyLost(replyToken, reply.text, groupId, lang);
+        } else {
+          await this.replyText(replyToken, reply.text, this.menuButtons(lang));
+        }
         continue;
       }
 

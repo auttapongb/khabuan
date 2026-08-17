@@ -158,6 +158,10 @@ export class MarshalService {
     return this.message('pitstop_confirm', {}, 'group', lang);
   }
 
+  confirmResume(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('resume_confirm', {}, 'group', lang);
+  }
+
   helpLost(lang: 'th' | 'en' = 'th'): MarshalMessage {
     return this.message('lost_help', {}, 'group', lang);
   }

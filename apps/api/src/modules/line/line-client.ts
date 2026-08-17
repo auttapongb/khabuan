@@ -10,6 +10,14 @@ export type LineTextMessage = {
   text: string;
   quickReply?: LineQuickReply;
 };
+export type LineLocationMessage = {
+  type: 'location';
+  title: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+};
+export type LineMessage = LineTextMessage | LineLocationMessage;
 
 /**
  * Thin client for the LINE Messaging API (Bot).
@@ -38,12 +46,12 @@ export class LineClient {
   }
 
   /** Answer a message in a chat/group. replyToken is single-use. */
-  async reply(replyToken: string, messages: LineTextMessage[]): Promise<void> {
+  async reply(replyToken: string, messages: LineMessage[]): Promise<void> {
     await this.post('/message/reply', { replyToken, messages });
   }
 
   /** Send a proactive message to a group/user/room id. */
-  async push(to: string, messages: LineTextMessage[]): Promise<void> {
+  async push(to: string, messages: LineMessage[]): Promise<void> {
     await this.post('/message/push', { to, messages });
   }
 

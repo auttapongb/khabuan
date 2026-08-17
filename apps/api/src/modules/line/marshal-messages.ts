@@ -113,9 +113,13 @@ export const MARSHAL_TEMPLATES = {
     th: '⛽ แวะพักปั๊ม — ลงบันทึกให้แล้ว ขับต่อเมื่อพร้อมนะ',
     en: '⛽ Pit stop logged — continue when ready.',
   },
+  resume_confirm: {
+    th: '🚗 กลับมาในเส้นทางแล้ว — ขับปลอดภัยนะ',
+    en: '🚗 Back on track — drive safe.',
+  },
   lost_help: {
-    th: '📍 ไม่เป็นไร! นี่จุดนัดหมายที่ใกล้สุด — ตามไปเลย ปลอดภัยไว้ก่อน',
-    en: '📍 No worries! Here\'s the nearest meeting point — head there, safety first.',
+    th: '📍 ไม่เป็นไร! พี่ส่งจุดหมายปลายทางให้แล้ว — ตามปักหมุดไปเลย ปลอดภัยไว้ก่อน',
+    en: "📍 No worries! I've sent the destination pin — head there, safety first.",
   },
   status_reply: {
     th: 'สถานะขบวน: ถึงแล้ว {arrived}/{total} คัน 🏁',

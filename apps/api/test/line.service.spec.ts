@@ -309,6 +309,74 @@ describe('LineService — นำขบวน group bot', () => {
     expect(client.reply.mock.calls.length).toBe(callsAfterFirst);
   });
 
+  it('sends the destination pin when a member is lost', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'b1',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'gL', userId: 'u1' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'L1',
+          message: { type: 'text', text: 'หลงทาง' },
+          source: { type: 'group', groupId: 'gL', userId: 'u2' },
+        },
+      ],
+    });
+    expect(client.reply).toHaveBeenLastCalledWith(
+      'L1',
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'location' }),
+        expect.objectContaining({ type: 'text' }),
+      ]),
+    );
+  });
+
+  it('records resume (back on track) as active sharing', async () => {
+    const { store, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'b1',
+          message: { type: 'text', text: 'ผูกขบวน 444444' },
+          source: { type: 'group', groupId: 'gR', userId: 'u1' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'r1',
+          message: { type: 'text', text: 'หลงทาง' },
+          source: { type: 'group', groupId: 'gR', userId: 'u2' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'r2',
+          message: { type: 'text', text: 'ไปต่อ' },
+          source: { type: 'group', groupId: 'gR', userId: 'u2' },
+        },
+      ],
+    });
+    const uid = [...store.users.values()].find((u) => u.lineSubject === 'u2')?.id;
+    const p = uid ? store.participants.get(`${DEMO_TRIP}:${uid}`) : undefined;
+    expect(p?.sharingState).toBe('ACTIVE');
+  });
+
   it('replies to ถึงแล้ว in the group (chat-as-interface)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({
