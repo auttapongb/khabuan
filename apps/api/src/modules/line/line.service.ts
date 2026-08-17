@@ -17,6 +17,13 @@ import { BKK_OFFSET_MS, nextTripCode } from '../../infrastructure/memory/trip-co
 const BIND_RE =
   /ผูกขบวน\s+([0-9a-zA-Z-]{4,})|#ขบวน\s*ผูก\s*([0-9a-zA-Z-]{4,})|bind\s+([0-9a-zA-Z-]{4,})/i;
 
+/** Single source of truth for chat status commands (shared by reply + persist). */
+const ARRIVAL_RE = /ถึงแล้ว|arrived|arrive|reached|made it|i'?m here/i;
+const DEPARTURE_RE = /ออกตัว|ออกแล้ว|departed|departing|heading out|leaving|i'?m out/i;
+const PITSTOP_RE = /แวะปั๊ม|พักปั๊ม|pit stop|fuel stop|gas station|refuel|rest stop/i;
+const LOST_RE = /หลงทาง|หาไม่เจอ|lost|can'?t find|i'?m lost/i;
+const NEGATION_RE = /ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/;
+
 interface PendingCreate {
   step: 'name' | 'destination' | 'time';
   name: string | null;
@@ -77,6 +84,9 @@ export class LineService {
 
   /** Cache of LINE display names by LINE user id. */
   private readonly profileNames = new Map<string, string>();
+
+  /** Recently-seen webhook event ids (dedupes LINE redeliveries). */
+  private readonly seenEventIds = new Set<string>();
 
   /** Best-effort resolve a LINE user's display name (cached). */
   private async resolveDisplayName(lineUserId: string): Promise<string> {
@@ -393,20 +403,11 @@ export class LineService {
    */
   personaReply(text: string, lang: 'th' | 'en' = 'th'): MarshalMessage | null {
     const t = text.trim().toLowerCase();
-    // Negation guard: "ยังไม่ถึง" / "ไม่ออกตัว" / "ไม่แวะ" must NOT count as status.
-    if (/ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/.test(t)) return null;
-    if (/ถึงแล้ว|ถึงอนุสาวรีย์|ปิดท้ายถึง|^ถึง$|arrived|arrive|arrival|reached|made it|i'?m here/i.test(t)) {
-      return this.marshal.confirmArrival(lang);
-    }
-    if (/ออกแล้ว|ออกตัว|รถนำออก|departed|departing|departure|heading out|leaving|i'?m out/i.test(t)) {
-      return this.marshal.confirmDeparture(lang);
-    }
-    if (/พักปั๊ม|แวะปั๊ม|fuel stop|pit stop|gas station|rest stop|refuel/i.test(t)) {
-      return this.marshal.confirmPitStop(lang);
-    }
-    if (/หลงทาง|หาไม่เจอ|หลง|lost|can'?t find|i'?m lost/i.test(t)) {
-      return this.marshal.helpLost(lang);
-    }
+    if (NEGATION_RE.test(t)) return null;
+    if (ARRIVAL_RE.test(t)) return this.marshal.confirmArrival(lang);
+    if (DEPARTURE_RE.test(t)) return this.marshal.confirmDeparture(lang);
+    if (PITSTOP_RE.test(t)) return this.marshal.confirmPitStop(lang);
+    if (LOST_RE.test(t)) return this.marshal.helpLost(lang);
     return null;
   }
 
@@ -463,16 +464,13 @@ export class LineService {
     );
     if (!trip) return this.marshal.notBound(lang);
     let arrived = 0;
-    let enroute = 0;
-    let departed = 0;
+    let total = 0;
     for (const p of this.store.participants.values()) {
       if (p.tripId !== trip.id) continue;
+      total++;
       if (p.arrivalStatus === 'CONFIRMED') arrived++;
-      else if (p.sharingState === 'ACTIVE' || p.sharingState === 'PAUSED')
-        enroute++;
-      else departed++;
     }
-    return this.marshal.statusReply(arrived, enroute, departed, lang);
+    return this.marshal.statusReply(arrived, total, lang);
   }
 
   /** The trip bound to a group, or null. */
@@ -523,17 +521,16 @@ export class LineService {
     const p = this.store.participants.get(`${trip.id}:${uid}`);
     if (!p) return;
     const t = text.trim().toLowerCase();
-    // Same negation guard as personaReply — "ยังไม่ถึง" is not an arrival.
-    if (/ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/.test(t)) return;
+    if (NEGATION_RE.test(t)) return;
     const now = new Date();
-    if (/ถึงแล้ว|arrived|arrive|reached|made it|i'?m here/i.test(t)) {
+    if (ARRIVAL_RE.test(t)) {
       p.arrivalStatus = 'CONFIRMED' as never;
       p.arrivedAt = p.arrivedAt ?? now;
-    } else if (/ออกแล้ว|ออกตัว|departed|departing|heading out|leaving/i.test(t)) {
+    } else if (DEPARTURE_RE.test(t)) {
       p.sharingState = 'ACTIVE' as never;
       p.arrivalStatus = 'NONE' as never;
       p.arrivedAt = null;
-    } else if (/พักปั๊ม|แวะปั๊ม|pit stop|fuel stop|gas station|refuel/i.test(t)) {
+    } else if (PITSTOP_RE.test(t)) {
       p.sharingState = 'PAUSED' as never;
     }
     p.updatedAt = now;
@@ -551,6 +548,7 @@ export class LineService {
       const event = raw as {
         type?: string;
         replyToken?: string;
+        webhookEventId?: string;
         message?: {
           type?: string;
           text?: string;
@@ -560,6 +558,16 @@ export class LineService {
         };
         source?: { type?: string; groupId?: string; roomId?: string; userId?: string };
       };
+      // Dedupe redelivered events (LINE re-sends the same webhookEventId on timeout/retry).
+      const eventId = event.webhookEventId;
+      if (eventId) {
+        if (this.seenEventIds.has(eventId)) continue;
+        this.seenEventIds.add(eventId);
+        if (this.seenEventIds.size > 5000) {
+          const oldest = this.seenEventIds.values().next().value;
+          if (oldest) this.seenEventIds.delete(oldest);
+        }
+      }
       const groupId = event.source?.groupId ?? event.source?.roomId ?? null;
       const replyToken = event.replyToken;
 

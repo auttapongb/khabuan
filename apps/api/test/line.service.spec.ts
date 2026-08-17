@@ -283,6 +283,32 @@ describe('LineService — นำขบวน group bot', () => {
     );
   });
 
+  it('dedupes redelivered events by webhookEventId', async () => {
+    const { client, svc } = makeLineService();
+    const nameEvent = {
+      type: 'message',
+      replyToken: 'c2',
+      webhookEventId: 'e-name',
+      message: { type: 'text', text: 'ไปเขาใหญ่' },
+      source: { type: 'user', userId: 'u9' },
+    };
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'c1',
+          webhookEventId: 'e-create',
+          message: { type: 'text', text: 'สร้างขบวน' },
+          source: { type: 'user', userId: 'u9' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({ events: [nameEvent] });
+    const callsAfterFirst = client.reply.mock.calls.length;
+    await svc.handleWebhookEvents({ events: [nameEvent] }); // redelivered → skipped
+    expect(client.reply.mock.calls.length).toBe(callsAfterFirst);
+  });
+
   it('replies to ถึงแล้ว in the group (chat-as-interface)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

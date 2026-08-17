@@ -164,11 +164,10 @@ export class MarshalService {
 
   statusReply(
     arrived: number,
-    enroute: number,
-    departed: number,
+    total: number,
     lang: 'th' | 'en' = 'th',
   ): MarshalMessage {
-    return this.message('status_reply', { arrived, enroute, departed }, 'group', lang);
+    return this.message('status_reply', { arrived, total }, 'group', lang);
   }
 
   joinGreeting(): MarshalMessage {

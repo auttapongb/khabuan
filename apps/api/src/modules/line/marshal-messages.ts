@@ -118,11 +118,11 @@ export const MARSHAL_TEMPLATES = {
     en: '📍 No worries! Here\'s the nearest meeting point — head there, safety first.',
   },
   status_reply: {
-    th: 'สถานะขบวนตอนนี้: ถึงแล้ว {arrived} · ระหว่างทาง {enroute} · ออกตัว {departed}',
-    en: 'Convoy status: {arrived} arrived · {enroute} en route · {departed} departed.',
+    th: 'สถานะขบวน: ถึงแล้ว {arrived}/{total} คัน 🏁',
+    en: 'Convoy status: {arrived}/{total} arrived 🏁',
   },
   join_greeting: {
-    th: 'สวัสดีทุกคน! พี่มาแล้ว 🚗\nพี่จะช่วยดูแลขบวนนี้ — แตะปุ่มด้านล่างหรือพิมพ์คำสั่งได้เลยน้า\nหัวหน้าขบวนพิมพ์ "ผูกขบวน <รหัสทริป>" เพื่อเริ่ม',
+    th: 'สวัสดีทุกคน! พี่มาแล้ว 🚗\nพี่จะช่วยดูแลขบวนนี้ — แตะปุ่มด้านล่างหรือพิมพ์คำสั่งได้เลยน้า\nหัวหน้าขบวนพิมพ์ "ผูกขบวน <รหัสขบวน>" เพื่อเริ่ม',
     en: 'Hi everyone! I\'m here 🚗\nTap the buttons below or type a command.\nOrganizer: send "bind <trip id>" to get started.',
   },
   bind_confirm: {
@@ -130,8 +130,8 @@ export const MARSHAL_TEMPLATES = {
     en: '🎉 Convoy bound!\nI\'ll report status from here — members type "arrived" at the destination 🏁',
   },
   help_menu: {
-    th: 'พี่ช่วยได้นะ 🚗\n• "ผูกขบวน <รหัส>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" — ลงบันทึกว่าถึงปลายทาง\n• "ออกตัว" — ลงบันทึกว่าออกเดินทาง\n• "แวะปั๊ม" — แจ้งพักปั๊มน้ำมัน\n• "หลงทาง" — ขอจุดนัดหมาย\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
-    en: 'I can help 🚗\n• "bind <trip id>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
+    th: 'พี่ช่วยได้นะ 🚗\n• "สร้างขบวน" — สร้างขบวนใหม่\n• "ผูกขบวน <รหัสขบวน>" — ผูกกรุ๊ปนี้กับทริป\n• "ถึงแล้ว" / "ออกตัว" / "แวะปั๊ม" / "หลงทาง" — ลงบันทึกสถานะ\n• "เช็คขบวน" — ดูสถานะขบวนตอนนี้',
+    en: 'I can help 🚗\n• "create" — make a new convoy\n• "bind <code>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
   },
   bind_help: {
     th: 'ผูกขบวนแบบนี้เลยน้า 👇\n"ผูกขบวน <รหัสขบวน>"\nตัวอย่าง: ผูกขบวน 17082026-AA\n(รหัสขบวนดูได้ตอนสร้างขบวน หรือในแอพนำขบวน)',
@@ -158,8 +158,8 @@ export const MARSHAL_TEMPLATES = {
     en: 'That code matches multiple convoys 🤔 Use the full convoy code (e.g. 17082026-AA).',
   },
   not_bound: {
-    th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่จะดูแลให้ 😊',
-    en: 'No convoy bound yet — send "bind <trip id>" first and I\'ll take over 😊',
+    th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสขบวน>" ก่อน แล้วพี่จะดูแลให้ 😊',
+    en: 'No convoy bound yet — send "bind <code>" first and I\'ll take over 😊',
   },
   create_start: {
     th: 'ได้เลย! มาเริ่มสร้างขบวนกัน 🚗\nชื่อทริปอะไรดี? (พิมพ์ชื่อเลย)',
