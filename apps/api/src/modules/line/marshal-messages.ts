@@ -134,16 +134,16 @@ export const MARSHAL_TEMPLATES = {
     en: 'I can help 🚗\n• "bind <trip id>" — link this group to a trip\n• "arrived" / "departed" / "pit stop" / "lost" — log status\n• "check" — convoy status',
   },
   bind_help: {
-    th: 'ผูกขบวนแบบนี้เลยน้า 👇\n"ผูกขบวน <รหัส>"\nตัวอย่าง: ผูกขบวน 444444\n(รหัส 6 ตัว — ดูได้ในแอพนำขบวน หน้ารายละเอียดทริป)',
-    en: 'Bind like this 👇\n"bind <code>"\ne.g. bind 444444\n(find the 6-char code in the Khabuan app / trip details)',
+    th: 'ผูกขบวนแบบนี้เลยน้า 👇\n"ผูกขบวน <รหัสขบวน>"\nตัวอย่าง: ผูกขบวน 17082026-AA\n(รหัสขบวนดูได้ตอนสร้างขบวน หรือในแอพนำขบวน)',
+    en: 'Bind like this 👇\n"bind <code>"\ne.g. bind 17082026-AA\n(the convoy code is shown when you create it)',
   },
   bind_need_group: {
     th: 'ผูกขบวนต้องทำในกรุ๊ป LINE นะจ๊ะ 🚗\nสร้างกรุ๊ปขบวน แล้วเพิ่มพี่เข้าไป จากนั้นพิมพ์ "ผูกขบวน <รหัส>" ในกรุ๊ปนั้นได้เลย',
     en: 'Binding happens in a LINE group 🚗\nCreate a convoy group, add me to it, then send "bind <code>" there.',
   },
   bind_not_found: {
-    th: 'หารหัสนี้ไม่เจอน้า 🤔 ลองเช็ครหัส 6 ตัวอีกที หรือดูได้ในแอพนำขบวน',
-    en: "Couldn't find that code 🤔 Double-check the 6-char code, or find it in the Khabuan app.",
+    th: 'หารหัสนี้ไม่เจอน้า 🤔 ลองเช็ครหัสขบวนอีกที (เช่น 17082026-AA) หรือดูได้ในแอพนำขบวน',
+    en: "Couldn't find that code 🤔 Double-check the convoy code (e.g. 17082026-AA).",
   },
   bind_already: {
     th: 'ขบวนนี้ผูกกับกรุ๊ปนี้อยู่แล้วนะ 🎉 ไม่ต้องผูกซ้ำ',
@@ -154,8 +154,8 @@ export const MARSHAL_TEMPLATES = {
     en: 'This convoy is already bound to another group 🤔 Let me know if you want to move it.',
   },
   bind_ambiguous: {
-    th: 'รหัสนี้ตรงกับหลายขบวนน้า 🤔 ใช้รหัสเต็ม (หรือ 6 ตัวที่เจาะจงกว่านี้) อีกที',
-    en: 'That code matches multiple convoys 🤔 Use the full code (or more digits).',
+    th: 'รหัสนี้ตรงกับหลายขบวนน้า 🤔 ใช้รหัสขบวนเต็ม (เช่น 17082026-AA) อีกที',
+    en: 'That code matches multiple convoys 🤔 Use the full convoy code (e.g. 17082026-AA).',
   },
   not_bound: {
     th: 'ยังไม่ผูกขบวนเลยน้า — ส่ง "ผูกขบวน <รหัสทริป>" ก่อน แล้วพี่จะดูแลให้ 😊',

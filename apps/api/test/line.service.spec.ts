@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { LineService } from '../src/modules/line/line.service';
 import { MarshalService } from '../src/modules/line/marshal.service';
 import { MemoryStore } from '../src/infrastructure/memory/memory.store';
+import { nextTripCode, tripCodeDate } from '../src/infrastructure/memory/trip-code';
 
 const DEMO_TRIP = '44444444-4444-4444-8444-444444444444';
 
@@ -33,6 +34,14 @@ function makeLineService() {
 }
 
 describe('LineService — นำขบวน group bot', () => {
+  it('generates memorable DDMMYYYY-XX trip codes', () => {
+    const now = new Date(Date.UTC(2026, 7, 17, 5, 0)); // Bangkok 2026-08-17 12:00
+    expect(tripCodeDate(now)).toBe('17082026');
+    expect(nextTripCode([], now)).toBe('17082026-AA');
+    expect(nextTripCode(['17082026-AA', '17082026-AB'], now)).toBe('17082026-AC');
+    expect(nextTripCode(['16082026-ZZ'], now)).toBe('17082026-AA');
+  });
+
   it('greets when added to a group (join event)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

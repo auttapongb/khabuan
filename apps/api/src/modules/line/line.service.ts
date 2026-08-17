@@ -11,13 +11,11 @@ import { MarshalService, MarshalMessage } from './marshal.service';
 import { LineClient, type LineTextMessage } from './line-client';
 import { MemoryStore } from '../../infrastructure/memory/memory.store';
 import type { TripRecord } from '../../infrastructure/memory/types';
+import { BKK_OFFSET_MS, nextTripCode } from '../../infrastructure/memory/trip-code';
 
-/** ผูกขบวน <code> / #ขบวน ผูก <code> / bind <code> (code = full UUID or short 6-char prefix) */
+/** ผูกขบวน <code> / #ขบวน ผูก <code> / bind <code> (code = full UUID, short prefix, or DDMMYYYY-XX) */
 const BIND_RE =
   /ผูกขบวน\s+([0-9a-zA-Z-]{4,})|#ขบวน\s*ผูก\s*([0-9a-zA-Z-]{4,})|bind\s+([0-9a-zA-Z-]{4,})/i;
-
-/** Asia/Bangkok is UTC+7 with no DST — used to build trip times from chat. */
-const BKK_OFFSET_MS = 7 * 60 * 60 * 1000;
 
 interface PendingCreate {
   step: 'name' | 'destination' | 'time';
@@ -152,8 +150,13 @@ export class LineService {
     const clubId = this.ensureClub(userId, displayName);
     const now = new Date();
     const id = randomUUID();
+    const code = nextTripCode(
+      [...this.store.trips.values()].map((t) => t.code),
+      now,
+    );
     this.store.trips.set(id, {
       id,
+      code,
       clubId,
       organizerId: userId,
       title: name,
@@ -188,7 +191,7 @@ export class LineService {
       updatedAt: now,
       geofenceEnteredAt: null,
     });
-    return { id, code: id.slice(0, 6).toUpperCase() };
+    return { id, code };
   }
 
   /** The user's own (open/published/draft) trips, newest first. */
@@ -432,8 +435,15 @@ export class LineService {
   private resolveTripId(code: string): string | 'ambiguous' | null {
     const c = code.trim().toUpperCase();
     if (!c) return null;
+    // Exact memorable-code match (DDMMYYYY-XX) — highest priority.
+    const byCode = [...this.store.trips.values()].find(
+      (t) => t.code && t.code.toUpperCase() === c,
+    );
+    if (byCode) return byCode.id;
+    // Exact UUID match.
     if (this.store.trips.has(code)) return code;
     if (this.store.trips.has(c)) return c;
+    // Short prefix match on the UUID.
     const matches = [...this.store.trips.keys()].filter((id) =>
       id.toUpperCase().startsWith(c),
     );
@@ -652,7 +662,7 @@ export class LineService {
             const pick = this.marshal.bindPick(lang);
             const buttons = trips.slice(0, 10).map((t) => ({
               label: t.title.slice(0, 20),
-              text: `ผูกขบวน ${t.id.slice(0, 6).toUpperCase()}`,
+              text: `ผูกขบวน ${t.code ?? t.id.slice(0, 6).toUpperCase()}`,
             }));
             replies.push(pick);
             await this.replyTextPairs(replyToken, pick.text, buttons);

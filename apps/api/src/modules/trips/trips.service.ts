@@ -15,6 +15,7 @@ import {
   computeFreshness,
 } from '@mcg-convoy/shared';
 import { MemoryStore, hashToken, mintInviteToken } from '../../infrastructure/memory/memory.store';
+import { nextTripCode } from '../../infrastructure/memory/trip-code';
 import {
   assertTripTransition,
   joinAllowed,
@@ -47,9 +48,14 @@ export class TripsService {
 
     const now = new Date();
     const id = randomUUID();
+    const code = nextTripCode(
+      [...this.store.trips.values()].map((t) => t.code),
+      now,
+    );
     const state: TripState = dto.publish ? 'PUBLISHED' : 'DRAFT';
     const trip = {
       id,
+      code,
       clubId: dto.clubId,
       organizerId,
       title: dto.title,

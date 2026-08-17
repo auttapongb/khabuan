@@ -68,6 +68,7 @@ export interface VehicleRecord {
 
 export interface TripRecord {
   id: string;
+  code: string | null;
   clubId: string;
   organizerId: string;
   title: string;

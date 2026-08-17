@@ -139,6 +139,7 @@ export class PersistenceService implements OnModuleInit, OnModuleDestroy {
     for (const t of trips) {
       this.store.trips.set(t.id, {
         id: t.id,
+        code: t.code,
         clubId: t.clubId,
         organizerId: t.organizerId,
         title: t.title,
@@ -385,6 +386,7 @@ export class PersistenceService implements OnModuleInit, OnModuleDestroy {
               where: { id: t.id },
               create: {
                 id: t.id,
+                code: t.code,
                 clubId: t.clubId,
                 organizerId: t.organizerId,
                 title: t.title,
@@ -406,6 +408,7 @@ export class PersistenceService implements OnModuleInit, OnModuleDestroy {
                 updatedAt: t.updatedAt,
               },
               update: {
+                code: t.code,
                 clubId: t.clubId,
                 organizerId: t.organizerId,
                 title: t.title,

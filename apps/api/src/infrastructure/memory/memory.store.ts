@@ -147,6 +147,7 @@ export class MemoryStore implements OnModuleInit {
 
     this.trips.set(tripId, {
       id: tripId,
+      code: null,
       clubId,
       organizerId,
       title: 'Bangkok Sunset Convoy',
