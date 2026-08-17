@@ -121,6 +121,10 @@ export const MARSHAL_TEMPLATES = {
     th: '📍 ไม่เป็นไร! พี่ส่งจุดหมายปลายทางให้แล้ว — ตามปักหมุดไปเลย ปลอดภัยไว้ก่อน',
     en: "📍 No worries! I've sent the destination pin — head there, safety first.",
   },
+  status_need_group: {
+    th: 'ลงสถานะได้ในกรุ๊ปขบวนนะ 🚗 พิมพ์ "ถึงแล้ว" / "ออกตัว" / "แวะปั๊ม" ในกรุ๊ปที่ผูกไว้ได้เลย',
+    en: 'Log status in your convoy group 🚗 Send "arrived" / "departed" / "pit stop" there.',
+  },
   status_reply: {
     th: 'สถานะขบวน: ถึงแล้ว {arrived}/{total} คัน 🏁',
     en: 'Convoy status: {arrived}/{total} arrived 🏁',

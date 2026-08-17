@@ -377,6 +377,56 @@ describe('LineService — นำขบวน group bot', () => {
     expect(p?.sharingState).toBe('ACTIVE');
   });
 
+  it('cancels the create flow with ยกเลิก', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'k1',
+          message: { type: 'text', text: 'สร้างขบวน' },
+          source: { type: 'user', userId: 'uX' },
+        },
+      ],
+    });
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'k2',
+          message: { type: 'text', text: 'ยกเลิก' },
+          source: { type: 'user', userId: 'uX' },
+        },
+      ],
+    });
+    expect(client.reply).toHaveBeenLastCalledWith(
+      'k2',
+      expect.arrayContaining([
+        expect.objectContaining({ text: expect.stringContaining('ยกเลิกการสร้างขบวน') }),
+      ]),
+    );
+  });
+
+  it('redirects status commands in a DM to the group', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        {
+          type: 'message',
+          replyToken: 'd1',
+          message: { type: 'text', text: 'ถึงแล้ว' },
+          source: { type: 'user', userId: 'uY' },
+        },
+      ],
+    });
+    expect(client.reply).toHaveBeenLastCalledWith(
+      'd1',
+      expect.arrayContaining([
+        expect.objectContaining({ text: expect.stringContaining('กรุ๊ปขบวน') }),
+      ]),
+    );
+  });
+
   it('replies to ถึงแล้ว in the group (chat-as-interface)', async () => {
     const { client, svc } = makeLineService();
     await svc.handleWebhookEvents({

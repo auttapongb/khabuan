@@ -313,6 +313,48 @@ export class LineService {
     return null;
   }
 
+  /** Geocode a free-text place name via OSM Nominatim (open-source, no key). */
+  private async geocode(
+    place: string,
+  ): Promise<{ lat: number; lng: number; label: string } | null> {
+    const q = encodeURIComponent(place.trim());
+    if (!q) return null;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3000);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&accept-language=th&q=${q}`,
+        {
+          headers: { 'User-Agent': 'khabuan-convoy-bot/1.0 (LINE convoy tracker)' },
+          signal: controller.signal,
+        },
+      );
+      if (!res.ok) return null;
+      const data = (await res.json()) as {
+        lat?: string;
+        lon?: string;
+        display_name?: string;
+      }[];
+      if (Array.isArray(data) && data.length > 0) {
+        const first = data[0];
+        const lat = parseFloat(first.lat ?? '');
+        const lng = parseFloat(first.lon ?? '');
+        if (!Number.isNaN(lat) && !Number.isNaN(lng)) {
+          return {
+            lat,
+            lng,
+            label: first.display_name?.split(',')[0] ?? place.trim(),
+          };
+        }
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   /**
    * Consume one answer in the create-convoy conversation. Returns true if the
    * message was part of an in-progress flow (so the caller should stop).
@@ -334,6 +376,15 @@ export class LineService {
     }
     lang = pending.lang;
 
+    // Allow cancel at any step of the create flow.
+    if (/^(ยกเลิก|cancel)$/i.test(text.trim())) {
+      this.pendingCreates.delete(lineUserId);
+      const cancelled = this.marshal.createCancelled(lang);
+      replies.push(cancelled);
+      await this.replyText(replyToken, cancelled.text);
+      return true;
+    }
+
     if (pending.step === 'name') {
       pending.name = text.trim();
       pending.step = 'destination';
@@ -343,7 +394,10 @@ export class LineService {
       return true;
     }
     if (pending.step === 'destination') {
-      pending.destination = { lat: 13.7563, lng: 100.5018, label: text.trim() };
+      const geo = await this.geocode(text.trim());
+      pending.destination = geo
+        ? { lat: geo.lat, lng: geo.lng, label: geo.label }
+        : { lat: 13.7563, lng: 100.5018, label: text.trim() };
       pending.step = 'time';
       const ask = this.marshal.createAskTime(lang);
       replies.push(ask);
@@ -746,6 +800,12 @@ export class LineService {
       // Chat-as-interface: the marshal answers recognized commands (both group & dm).
       const reply = this.personaReply(text, lang);
       if (reply) {
+        if (!groupId) {
+          const needGroup = this.marshal.statusNeedGroup(lang);
+          replies.push(needGroup);
+          await this.replyText(replyToken, needGroup.text);
+          continue;
+        }
         this.recordStatus(text, groupId, userId);
         replies.push(reply);
         if (LOST_RE.test(text.trim().toLowerCase())) {

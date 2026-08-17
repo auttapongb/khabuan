@@ -166,6 +166,10 @@ export class MarshalService {
     return this.message('lost_help', {}, 'group', lang);
   }
 
+  statusNeedGroup(lang: 'th' | 'en' = 'th'): MarshalMessage {
+    return this.message('status_need_group', {}, 'group', lang);
+  }
+
   statusReply(
     arrived: number,
     total: number,
