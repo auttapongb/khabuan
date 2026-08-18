@@ -655,8 +655,10 @@ export class LineService {
       const groupId = event.source?.groupId ?? event.source?.roomId ?? null;
       const replyToken = event.replyToken;
 
-      // นำขบวน was added to a group → introduce itself.
-      if (event.type === 'join' || event.type === 'memberJoined') {
+      // นำขบวน was added to a group → introduce itself ONCE (join event only).
+      // memberJoined (other people joining) must NOT re-trigger the full intro —
+      // otherwise adding the bot + members together produces duplicate greetings.
+      if (event.type === 'join') {
         if (groupId) {
           const greeting = this.marshal.joinGreeting();
           replies.push(greeting);

@@ -58,6 +58,14 @@ describe('LineService — นำขบวน group bot', () => {
     );
   });
 
+  it('does NOT re-greet when other members join (memberJoined)', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [{ type: 'memberJoined', source: { type: 'group', groupId: 'g1' } }],
+    });
+    expect(client.push).not.toHaveBeenCalled();
+  });
+
   it('binds a group via ผูกขบวน <tripId>', async () => {
     const { store, client, svc } = makeLineService();
     await svc.handleWebhookEvents({
