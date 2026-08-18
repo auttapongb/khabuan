@@ -66,6 +66,36 @@ describe('LineService — นำขบวน group bot', () => {
     expect(client.push).not.toHaveBeenCalled();
   });
 
+  it('shows the command list when someone types นำขบวน (bot name)', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'rt-help', message: { type: 'text', text: 'นำขบวน' }, source: { type: 'group', groupId: 'g1', userId: 'u1' } },
+      ],
+    });
+    expect(client.reply).toHaveBeenCalledWith(
+      'rt-help',
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'text', text: expect.stringContaining('สร้างขบวน') }),
+      ]),
+    );
+  });
+
+  it('shows the command list when someone types เมนู (menu quick-reply)', async () => {
+    const { client, svc } = makeLineService();
+    await svc.handleWebhookEvents({
+      events: [
+        { type: 'message', replyToken: 'rt-menu', message: { type: 'text', text: 'เมนู' }, source: { type: 'group', groupId: 'g1', userId: 'u1' } },
+      ],
+    });
+    expect(client.reply).toHaveBeenCalledWith(
+      'rt-menu',
+      expect.arrayContaining([
+        expect.objectContaining({ type: 'text', text: expect.stringContaining('ผูกขบวน') }),
+      ]),
+    );
+  });
+
   it('binds a group via ผูกขบวน <tripId>', async () => {
     const { store, client, svc } = makeLineService();
     await svc.handleWebhookEvents({

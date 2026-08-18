@@ -26,6 +26,10 @@ const RESUME_RE =
   /ไปต่อ|เข้าทาง|กลับมาแล้ว|กลับเข้ารูป|กลับเส้นทาง|back on track|found my way|resume|on my way again|heading out again/i;
 const NEGATION_RE = /ไม่ถึง|ยังไม่ถึง|ไม่ออก|ยังไม่ออก|ไม่แวะ|ไม่หลง/;
 
+/** Bot name + help/menu words → show the command list (works in group AND dm). */
+const HELP_RE =
+  /^(นำขบวน|เมนู|ช่วย|ช่วยหน่อย|คำสั่ง|วิธีใช้|ใช้ยังไง|ใช้ยังงัย|ช่วยเหลือ|help|menu|commands|command list|what can you do|how do i use this)$/i;
+
 interface PendingCreate {
   step: 'name' | 'destination' | 'time';
   name: string | null;
@@ -707,6 +711,14 @@ export class LineService {
 
       // Ongoing create flow → consume this answer.
       if (userId && (await this.handlePendingCreate(userId, text, lang, replyToken, replies))) {
+        continue;
+      }
+
+      // Bot name / help / menu → show the command list (in group AND dm).
+      if (HELP_RE.test(text.trim())) {
+        const help = this.marshal.help(lang);
+        replies.push(help);
+        await this.replyText(replyToken, help.text, this.menuButtons(lang));
         continue;
       }
 
