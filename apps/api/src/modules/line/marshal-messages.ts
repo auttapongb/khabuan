@@ -182,7 +182,7 @@ export const MARSHAL_TEMPLATES = {
     en: 'What date & time? ⏰\ne.g. "tomorrow 9:00" or "25/8 9:00"',
   },
   create_done: {
-    th: '🎉 สร้างขบวน "{title}" แล้ว!\nรหัสขบวน: {code}\nเพิ่มพี่เข้ากรุ๊ป แล้วพิมพ์ "ผูกขบวน {code}" เพื่อผูกได้เลย',
+    th: '🎉 สร้างขบวน "{title}" แล้ว!\nรหัสขบวน: {code}\nเพิ่มพี่เข้ากรุ๊ป แล้วพิมพ์ ข้างล่าง เพื่อผูกได้เลย\n\n"ผูกขบวน {code}"',
     en: '🎉 Convoy "{title}" created!\nCode: {code}\nAdd me to the group, then send "bind {code}".',
   },
   my_trips_none: {
