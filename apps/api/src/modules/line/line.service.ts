@@ -625,13 +625,14 @@ export class LineService {
     return null;
   }
 
-  /** LIFF (or web) URL of the live convoy map for a bound group, or null. */
+  /** URL of the live convoy map (LIFF when available, else afolio domain). */
   private mapUrl(groupId: string | null): string | null {
     const trip = groupId ? this.boundTrip(groupId) : null;
     if (!trip) return null;
     const liffId = this.config.get<string>('LIFF_ID');
     const web = (
-      this.config.get<string>('PUBLIC_WEB_URL') || 'http://localhost:3000'
+      this.config.get<string>('PUBLIC_WEB_URL') ||
+      'https://numkhabuan.afolio.co'
     ).replace(/\/+$/, '');
     const base = liffId ? `https://liff.line.me/${liffId}` : web;
     return `${base}/trips/${trip.id}/live`;
