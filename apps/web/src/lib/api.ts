@@ -17,7 +17,7 @@ import type {
   Freshness,
 } from "./types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const DEMO_CLUB_ID = "33333333-3333-4333-8333-333333333333";
 
 type TokenStore = { accessToken?: string };
