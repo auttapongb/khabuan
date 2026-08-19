@@ -26,7 +26,7 @@ import {
   postLocations,
   setSharing,
 } from "@/lib/api";
-import { DEMO_ROUTES, interpolate, openExternalMaps, watchPosition } from "@/lib/geo";
+import { DEMO_ROUTES, interpolate, lastUpdateLabel, openExternalMaps, watchPosition } from "@/lib/geo";
 import { tapHaptic } from "@/lib/haptic";
 import { briefingLine, routeBriefing } from "@/lib/briefing";
 import { convoyRole } from "@/lib/convoy-roles";
@@ -368,7 +368,15 @@ function LiveHud({
                   {role && role !== "member" ? ` · ${t.roles[role]}` : ""}
                 </span>
                 <span className={styles[`f_${l.freshness}`]}>
-                  {t.freshness[l.freshness]}
+                  {l.freshness === "live"
+                    ? t.freshness.live
+                    : l.freshness === "offline"
+                      ? t.freshness.offline
+                      : l.sampledAt
+                        ? lastUpdateLabel(
+                            Date.now() - new Date(l.sampledAt).getTime(),
+                          )
+                        : t.freshness[l.freshness]}
                   {l.etaMinutes != null ? (
                     <>
                       {" · "}

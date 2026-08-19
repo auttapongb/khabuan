@@ -1,7 +1,7 @@
 import type { Freshness, LatLng, LocationSample } from "./types";
 
-export const FRESHNESS_LIVE_MS = 15_000;
-export const FRESHNESS_DELAYED_MS = 60_000;
+export const FRESHNESS_LIVE_MS = 60_000;
+export const FRESHNESS_DELAYED_MS = 300_000;
 export const DRIVING_SPEED_MPS = 4; // ~14 km/h — simplify UI when moving
 
 export function freshnessFromAge(ageMs: number): Freshness {

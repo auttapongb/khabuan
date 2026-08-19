@@ -60,9 +60,9 @@ describe('location validation', () => {
   });
 
   it('labels freshness Live / Delayed / Stale', () => {
-    expect(computeFreshness(5, true)).toBe('LIVE');
-    expect(computeFreshness(30, true)).toBe('DELAYED');
-    expect(computeFreshness(90, true)).toBe('STALE');
+    expect(computeFreshness(30, true)).toBe('LIVE');
+    expect(computeFreshness(120, true)).toBe('DELAYED');
+    expect(computeFreshness(400, true)).toBe('STALE');
     expect(computeFreshness(5, false)).toBe('OFFLINE');
   });
 

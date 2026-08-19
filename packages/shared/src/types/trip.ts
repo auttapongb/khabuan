@@ -74,8 +74,8 @@ export type LocationSampleInput = z.infer<typeof LocationSampleSchema>;
 
 /** Freshness thresholds from spec (seconds). */
 export const FRESHNESS_THRESHOLDS = {
-  LIVE_MAX_S: 15,
-  DELAYED_MAX_S: 60,
+  LIVE_MAX_S: 60,
+  DELAYED_MAX_S: 300,
 } as const;
 
 export function computeFreshness(
