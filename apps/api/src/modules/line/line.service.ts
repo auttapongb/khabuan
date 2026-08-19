@@ -108,8 +108,8 @@ export class LineService {
   /** The main command menu as quick-reply buttons, in the reply language. */
   private menuButtons(lang: 'th' | 'en'): string[] {
     return lang === 'en'
-      ? ['Check', 'Arrived', 'Departed', 'Pit stop', 'Lost']
-      : ['เช็คขบวน', 'ถึงแล้ว', 'ออกตัว', 'แวะปั๊ม', 'หลงทาง'];
+      ? ['Departed', 'Check', 'Pit stop', 'Lost', 'Arrived']
+      : ['ออกตัว', 'เช็คขบวน', 'แวะปั๊ม', 'หลงทาง', 'ถึงแล้ว'];
   }
 
   /** In-progress trip creation flows, keyed by LINE user id. */
@@ -542,23 +542,82 @@ export class LineService {
   }
 
   /** Current convoy status for a bound group (or "not bound" if none). */
-  private statusReply(
+  private async statusReply(
     groupId: string | null,
     lang: 'th' | 'en' = 'th',
-  ): MarshalMessage {
+  ): Promise<MarshalMessage> {
     if (!groupId) return this.marshal.notBound(lang);
     const trip = [...this.store.trips.values()].find(
       (t) => t.lineGroupId === groupId,
     );
     if (!trip) return this.marshal.notBound(lang);
-    let arrived = 0;
-    let total = 0;
-    for (const p of this.store.participants.values()) {
-      if (p.tripId !== trip.id) continue;
-      total++;
-      if (p.arrivalStatus === 'CONFIRMED') arrived++;
+
+    const parts = [...this.store.participants.values()].filter(
+      (p) => p.tripId === trip.id,
+    );
+    const lines: string[] = [];
+    let idx = 0;
+    for (const p of parts) {
+      idx += 1;
+      const name = await this.resolveDisplayName(p.userId);
+      const vehicle = p.vehicleId
+        ? this.store.vehicles.get(p.vehicleId)
+        : undefined;
+      const car = vehicle
+        ? (
+            vehicle.nickname ||
+            vehicle.plateAlias ||
+            vehicle.color ||
+            vehicle.class ||
+            'รถ'
+          ).trim()
+        : 'ไม่มีข้อมูลรถ';
+      const eta = this.latestEtaMinutes(trip.id, p.userId);
+      const state =
+        p.arrivalStatus === 'CONFIRMED'
+          ? '🏁 ถึงแล้ว'
+          : eta !== null
+            ? `ETA ~${eta} นาที`
+            : 'ยังไม่แชร์ตำแหน่ง';
+      lines.push(`${idx}) ${name} - ${car} - ${state}`);
     }
-    return this.marshal.statusReply(arrived, total, lang);
+
+    const header =
+      lang === 'en'
+        ? `🚗 Convoy "${trip.title}" (${parts.length} cars)\n`
+        : `🚗 ขบวน "${trip.title}" (${parts.length} คัน)\n`;
+    const body = lines.length
+      ? lines.join('\n')
+      : lang === 'en'
+        ? 'No members yet.'
+        : 'ยังไม่มีสมาชิกในขบวน';
+    return { target: 'group', text: header + body, key: 'status_reply' };
+  }
+
+  /** Latest non-stale ETA in minutes for (trip, user), or null. */
+  private latestEtaMinutes(tripId: string, userId: string): number | null {
+    let best: {
+      calculatedAt: Date;
+      durationSec: number | null;
+      etaAt: Date | null;
+    } | null = null;
+    for (const e of this.store.etaSnapshots) {
+      if (e.tripId !== tripId || e.userId !== userId || e.stale) continue;
+      if (!best || e.calculatedAt.getTime() > best.calculatedAt.getTime()) {
+        best = e;
+      }
+    }
+    if (!best) return null;
+    if (typeof best.durationSec === 'number') {
+      return Math.max(1, Math.round(best.durationSec / 60));
+    }
+    if (best.etaAt) {
+      return Math.max(
+        1,
+        Math.round((best.etaAt.getTime() - Date.now()) / 60000),
+      );
+    }
+    return null;
   }
 
   /** The trip bound to a group, or null. */
@@ -672,9 +731,11 @@ export class LineService {
               text: greeting.text,
               quickReply: this.lineClient.quickReply([
                 'เมนู',
-                'เช็คขบวน',
-                'ถึงแล้ว',
                 'ออกตัว',
+                'เช็คขบวน',
+                'แวะปั๊ม',
+                'หลงทาง',
+                'ถึงแล้ว',
               ]),
             },
           ]);
@@ -836,7 +897,7 @@ export class LineService {
         wakes.push(hit.kind);
         const wakeReply =
           hit.kind === 'status'
-            ? this.statusReply(groupId, lang)
+            ? await this.statusReply(groupId, lang)
             : hit.kind === 'help'
               ? this.marshal.help(lang)
               : null;

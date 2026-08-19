@@ -110,16 +110,16 @@ export const MARSHAL_TEMPLATES = {
     en: '🚗 Departed! The convoy will wait for everyone.',
   },
   pitstop_confirm: {
-    th: '⛽ แวะพักปั๊ม — ลงบันทึกให้แล้ว ขับต่อเมื่อพร้อมนะ',
-    en: '⛽ Pit stop logged — continue when ready.',
+    th: '⛽ แวะพักปั๊ม — ลงบันทึกให้แล้ว กลับมา on track แล้วบอกพี่ด้วยน้า 🚗',
+    en: "⛽ Pit stop logged — tell me when you're back on track 🚗",
   },
   resume_confirm: {
     th: '🚗 กลับมาในเส้นทางแล้ว — ขับปลอดภัยนะ',
     en: '🚗 Back on track — drive safe.',
   },
   lost_help: {
-    th: '📍 ไม่เป็นไร! พี่ส่งจุดหมายปลายทางให้แล้ว — ตามปักหมุดไปเลย ปลอดภัยไว้ก่อน',
-    en: "📍 No worries! I've sent the destination pin — head there, safety first.",
+    th: '📍 ไม่เป็นไร! พี่ส่งจุดหมายปลายทางให้แล้ว — ตามปักหมุดไปเลย กลับมา on track แล้วบอกพี่ด้วยน้า 🚗',
+    en: "📍 No worries! I've sent the destination pin — head there, then tell me when you're back on track.",
   },
   status_need_group: {
     th: 'ลงสถานะได้ในกรุ๊ปขบวนนะ 🚗 พิมพ์ "ถึงแล้ว" / "ออกตัว" / "แวะปั๊ม" ในกรุ๊ปที่ผูกไว้ได้เลย',
