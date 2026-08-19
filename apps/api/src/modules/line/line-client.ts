@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-export type LineQuickReplyAction = { type: 'message'; label: string; text: string };
+export type LineQuickReplyAction =
+  | { type: 'message'; label: string; text: string }
+  | { type: 'uri'; label: string; uri: string };
 export type LineQuickReply = {
   items: { type: 'action'; action: LineQuickReplyAction }[];
 };
@@ -90,6 +92,16 @@ export class LineClient {
       items: items.map(({ label, text }) => ({
         type: 'action',
         action: { type: 'message', label, text },
+      })),
+    };
+  }
+
+  /** Quick replies that open a URI (e.g. the LIFF live map) in LINE. */
+  quickReplyUri(items: { label: string; uri: string }[]): LineQuickReply {
+    return {
+      items: items.map(({ label, uri }) => ({
+        type: 'action',
+        action: { type: 'uri', label, uri },
       })),
     };
   }

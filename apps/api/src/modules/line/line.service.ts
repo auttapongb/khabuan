@@ -108,8 +108,8 @@ export class LineService {
   /** The main command menu as quick-reply buttons, in the reply language. */
   private menuButtons(lang: 'th' | 'en'): string[] {
     return lang === 'en'
-      ? ['Departed', 'Check', 'Pit stop', 'Lost', 'Arrived']
-      : ['ออกตัว', 'เช็คขบวน', 'แวะปั๊ม', 'หลงทาง', 'ถึงแล้ว'];
+      ? ['Departed', 'Check', 'Pit stop', 'Lost', 'Arrived', '🗺️ Map']
+      : ['ออกตัว', 'เช็คขบวน', 'แวะปั๊ม', 'หลงทาง', 'ถึงแล้ว', '🗺️ ดูแผนที่'];
   }
 
   /** In-progress trip creation flows, keyed by LINE user id. */
@@ -579,7 +579,12 @@ export class LineService {
           : eta !== null
             ? `ETA ~${eta} นาที`
             : 'ยังไม่แชร์ตำแหน่ง';
-      lines.push(`${idx}) ${name} - ${car} - ${state}`);
+      const last = this.lastUpdateLabel(trip.id, p.userId, p.updatedAt, lang);
+      lines.push(
+        lang === 'en'
+          ? `${idx}) ${name} - ${car} - ${state} · updated ${last}`
+          : `${idx}) ${name} - ${car} - ${state} · อัปเดต ${last}`,
+      );
     }
 
     const header =
@@ -618,6 +623,64 @@ export class LineService {
       );
     }
     return null;
+  }
+
+  /** LIFF (or web) URL of the live convoy map for a bound group, or null. */
+  private mapUrl(groupId: string | null): string | null {
+    const trip = groupId ? this.boundTrip(groupId) : null;
+    if (!trip) return null;
+    const liffId = this.config.get<string>('LIFF_ID');
+    const web = (
+      this.config.get<string>('PUBLIC_WEB_URL') || 'http://localhost:3000'
+    ).replace(/\/+$/, '');
+    const base = liffId ? `https://liff.line.me/${liffId}` : web;
+    return `${base}/trips/${trip.id}/live`;
+  }
+
+  /** Human "last updated" label for a car — location sample if any, else last status change. */
+  private lastUpdateLabel(
+    tripId: string,
+    userId: string,
+    fallback: Date,
+    lang: 'th' | 'en',
+  ): string {
+    const loc = this.store.locationCurrents.get(`${tripId}:${userId}`);
+    const at = loc?.sampledAt ?? loc?.receivedAt ?? fallback;
+    return this.relativeTime(at, lang);
+  }
+
+  private relativeTime(d: Date, lang: 'th' | 'en'): string {
+    const min = Math.round((Date.now() - d.getTime()) / 60000);
+    if (lang === 'en') {
+      if (min < 1) return 'just now';
+      if (min < 60) return `${min}m ago`;
+      const hr = Math.round(min / 60);
+      if (hr < 24) return `${hr}h ago`;
+      return `${Math.round(hr / 24)}d ago`;
+    }
+    if (min < 1) return 'เมื่อกี้';
+    if (min < 60) return `${min} นาทีที่แล้ว`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `${hr} ชม.ที่แล้ว`;
+    return `${Math.round(hr / 24)} วันที่แล้ว`;
+  }
+
+  /** Reply with text + a "เปิดแผนที่" URI quick-reply that opens the live map. */
+  private async replyWithMap(
+    replyToken: string | undefined,
+    text: string,
+    uri: string,
+    lang: 'th' | 'en',
+  ): Promise<void> {
+    if (!replyToken) return;
+    const msg: LineTextMessage = {
+      type: 'text',
+      text,
+      quickReply: this.lineClient.quickReplyUri([
+        { label: lang === 'en' ? '🗺️ Open map' : '🗺️ เปิดแผนที่', uri },
+      ]),
+    };
+    await this.lineClient.reply(replyToken, [msg]);
   }
 
   /** The trip bound to a group, or null. */
@@ -783,6 +846,24 @@ export class LineService {
         continue;
       }
 
+      // Live map link (LIFF) for the bound trip.
+      if (/^(ดูแผนที่|แผนที่|map|live)$/i.test(text.trim())) {
+        const url = this.mapUrl(groupId);
+        if (!url) {
+          const notBound = this.marshal.notBound(lang);
+          replies.push(notBound);
+          await this.replyText(replyToken, notBound.text, this.menuButtons(lang));
+          continue;
+        }
+        const mapText =
+          lang === 'en'
+            ? `🗺️ Live convoy map:\n${url}`
+            : `🗺️ แผนที่ขบวนสด:\n${url}`;
+        replies.push({ target: 'group', text: mapText, key: 'help_menu' });
+        await this.replyWithMap(replyToken, mapText, url, lang);
+        continue;
+      }
+
       // Create a convoy from chat.
       if (/^(สร้างขบวน|สร้างทริป|create|new trip)$/i.test(text.trim())) {
         if (userId) {
@@ -903,7 +984,12 @@ export class LineService {
               : null;
         if (wakeReply) {
           replies.push(wakeReply);
-          await this.replyText(replyToken, wakeReply.text, this.menuButtons(lang));
+          const map = hit.kind === 'status' ? this.mapUrl(groupId) : null;
+          if (map) {
+            await this.replyWithMap(replyToken, wakeReply.text, map, lang);
+          } else {
+            await this.replyText(replyToken, wakeReply.text, this.menuButtons(lang));
+          }
         }
         continue;
       }

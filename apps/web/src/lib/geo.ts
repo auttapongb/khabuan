@@ -23,6 +23,16 @@ export function freshnessLabel(f: Freshness): string {
   }
 }
 
+/** Compact "last updated" label for a car marker (e.g. "5m ago", "2h ago"). */
+export function lastUpdateLabel(ageMs: number): string {
+  const min = Math.round(ageMs / 60000);
+  if (min < 1) return "just now";
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  return `${Math.round(hr / 24)}d ago`;
+}
+
 export function haversineMeters(a: LatLng, b: LatLng): number {
   const R = 6371000;
   const toRad = (d: number) => (d * Math.PI) / 180;

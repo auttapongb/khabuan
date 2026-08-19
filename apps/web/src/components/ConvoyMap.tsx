@@ -5,7 +5,7 @@ import maplibregl, { type Map as MlMap, Marker } from "maplibre-gl";
 import * as turf from "@turf/turf";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { LatLng, ParticipantLocation } from "@/lib/types";
-import { freshnessLabel } from "@/lib/geo";
+import { lastUpdateLabel } from "@/lib/geo";
 import { isPlottable } from "@/lib/roster";
 import { loadMcGMapStyle } from "@/lib/map-style";
 import styles from "./ConvoyMap.module.css";
@@ -186,9 +186,19 @@ function markerClass(p: ParticipantLocation, selfId?: string): string {
 }
 
 function markerHtml(p: ParticipantLocation, heading: number): string {
+  const sampled = new Date(p.sampledAt).getTime();
+  const ageMs = Number.isFinite(sampled)
+    ? Math.max(0, Date.now() - sampled)
+    : Infinity;
+  const status =
+    p.freshness === "live"
+      ? "● LIVE"
+      : p.freshness === "offline" || !Number.isFinite(ageMs)
+        ? "offline"
+        : lastUpdateLabel(ageMs);
   return `<span class="${styles.pinWrap}" style="transform:rotate(${heading}deg)"><span class="${styles.needle}"></span></span><span class="${styles.label}">${escapeHtml(
     p.displayName.split(" ")[0],
-  )} · ${freshnessLabel(p.freshness)}</span>`;
+  )} · ${escapeHtml(status)}</span>`;
 }
 
 function addOverlayLayers(
